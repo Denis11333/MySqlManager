@@ -3,7 +3,9 @@ import os
 from PyQt5 import QtCore, QtWidgets
 
 import mysql.connector
-from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView
+from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMessageBox
+from _mysql_connector import MySQLInterfaceError
+
 import addDatabaseDesign
 
 
@@ -232,40 +234,58 @@ class Ui_MainWindow(object):
             change_value = ''
 
             row_id = 0
+            arrayValues = []
             for item in cursor:
                 if row_id is self.table.currentRow():
                     change_value = item[self.table.currentColumn()]
+                arrayValues.append(item[self.table.currentColumn()])
                 row_id += 1
+
+            print(arrayValues.count(change_value))
+
+            if arrayValues.count(change_value) > 1:
+                self.messageWarningShow(
+                    'Unexpected update count received (Actual: ' + str(arrayValues.count(change_value)) +
+                    ', Expected: 1). All changes will be rolled back.')
+
+                self.table.setRowCount(0)
+                self.table.setColumnCount(0)
+                self.getCurrentItemFromWidget()
+                return None
 
             print(column_to_change, change_value, self.table.currentItem().text())
 
             if str(change_value) == str(self.table.currentItem().text()):
                 return None
+            try:
+                if str(change_value).isnumeric():
+                    cursor.execute(
+                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + str(
+                            column_to_change) + "=" + self.table.currentItem().text() + '' +
+                        ' WHERE ' + str(column_to_change) + '=' + str(change_value) + ';'
+                    )
+                    print(
+                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + str(
+                            column_to_change) + "=" + self.table.currentItem().text() + '' +
+                        ' WHERE ' + str(column_to_change) + '=' + str(change_value) + ';'
+                    )
+                else:
+                    cursor.execute(
+                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + column_to_change + "=\'" + self.table.currentItem().text() + '\'' +
+                        ' WHERE ' + column_to_change + '=\'' + change_value + '\';')
 
-            if str(change_value).isnumeric():
-                cursor.execute(
-                    'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + str(
-                        column_to_change) + "=" + self.table.currentItem().text() + '' +
-                    ' WHERE ' + str(column_to_change) + '=' + str(change_value) + ';'
-                )
-                print(
-                    'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + str(
-                        column_to_change) + "=" + self.table.currentItem().text() + '' +
-                    ' WHERE ' + str(column_to_change) + '=' + str(change_value) + ';'
-                )
-            else:
-                cursor.execute(
-                    'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + column_to_change + "=\'" + self.table.currentItem().text() + '\'' +
-                    ' WHERE ' + column_to_change + '=\'' + change_value + '\';')
-
-                print(
-                    'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + column_to_change + " =\'" + self.table.currentItem().text() + '\'' +
-                    ' WHERE ' + column_to_change + ' =\'' + change_value + '\';')
+                    print(
+                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + column_to_change + " =\'" + self.table.currentItem().text() + '\'' +
+                        ' WHERE ' + column_to_change + ' =\'' + change_value + '\';')
+            except Exception as e:
+                self.messageWarningShow(str(e))
+                self.table.setRowCount(0)
+                self.table.setColumnCount(0)
+                self.getCurrentItemFromWidget()
 
             db.commit()
 
             self.table.setCurrentItem(None)
-
 
     def makeConnect(self):
         return mysql.connector.connect(
@@ -281,3 +301,10 @@ class Ui_MainWindow(object):
             password=self.passwordDb,
             database=self.dbComboBox.currentText()
         )
+
+    def messageWarningShow(self, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle('Warning')
+        msg.setText(message)
+        msg.exec_()
