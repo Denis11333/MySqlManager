@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "$1" | sudo -S sudo apt update
+echo y | sudo -S sudo apt install mysql-server
+echo "$1" | sudo -S mysql --user='root' --execute="ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mysqlManagerPassword1_';"
