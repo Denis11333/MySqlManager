@@ -40,9 +40,9 @@ class Ui_MainWindow(object):
         self.CheckDownload = QtWidgets.QCheckBox(self.centralwidget)
         self.CheckDownload.setGeometry(QtCore.QRect(690, 510, 181, 31))
         self.CheckDownload.setObjectName("CheckDownload")
-        self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
-        self.lineEdit.setGeometry(QtCore.QRect(870, 500, 191, 20))
-        self.lineEdit.setObjectName("lineEdit")
+        self.labelForRoot = QtWidgets.QLabel(self.centralwidget)
+        self.labelForRoot.setGeometry(QtCore.QRect(870, 500, 191, 20))
+        self.labelForRoot.setObjectName("lineEdit")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1069, 22))
@@ -63,7 +63,6 @@ class Ui_MainWindow(object):
         self.menuActions.addAction(self.actionAdd_table)
         self.menuActions.addAction(self.actionAdd_Row)
         self.menubar.addAction(self.menuActions.menuAction())
-
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
 
         self.retranslateUi(MainWindow)
@@ -99,7 +98,7 @@ class Ui_MainWindow(object):
                                                              "check if downlaod"))
         self.connectButton.setText(_translate("MainWindow", "connect"))
         self.CheckDownload.setText(_translate("MainWindow", "Download"))
-        self.lineEdit.setText(_translate("MainWindow", "Password from root :"))
+        self.labelForRoot.setText(_translate("MainWindow", "Password for root : "))
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
         self.actionAdd_database.setText(_translate("MainWindow", "Add database"))
         self.actionAdd_table.setText(_translate("MainWindow", "Add table"))
@@ -188,8 +187,6 @@ class Ui_MainWindow(object):
 
     def Prikol(self, index):
         print(index)
-        textbox = QtWidgets.QLineEdit(self.table)
-        textbox.show()
 
     # fill table ( get information from selected table )
 
