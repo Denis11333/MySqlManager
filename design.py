@@ -4,7 +4,6 @@ from PyQt5 import QtCore, QtWidgets
 
 import mysql.connector
 from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMessageBox
-from _mysql_connector import MySQLInterfaceError
 
 import addDatabaseDesign
 
@@ -58,8 +57,11 @@ class Ui_MainWindow(object):
         self.actionAdd_database.setObjectName("actionAdd_database")
         self.actionAdd_table = QtWidgets.QAction(MainWindow)
         self.actionAdd_table.setObjectName("actionAdd_table")
+        self.actionAdd_Row = QtWidgets.QAction(MainWindow)
+        self.actionAdd_Row.setObjectName('actionAdd_Row')
         self.menuActions.addAction(self.actionAdd_database)
         self.menuActions.addAction(self.actionAdd_table)
+        self.menuActions.addAction(self.actionAdd_Row)
         self.menubar.addAction(self.menuActions.menuAction())
 
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
@@ -76,16 +78,18 @@ class Ui_MainWindow(object):
         self.downloadButton.clicked.connect(self.downloadAction)
         self.connectButton.clicked.connect(self.mysqlConnect)
         self.dbComboBox.activated.connect(self.updateWithComboBox)
-        self.listTables.activated.connect(self.getCurrentItemFromWidget)
+        self.listTables.activated.connect(self.fillTable)
         self.table.horizontalHeader().sectionClicked.connect(self.Prikol)
         self.actionAdd_database.triggered.connect(self.createDatabase)
         self.password.textChanged.connect(self.passwordChange)
         self.table.itemChanged.connect(self.doChangesInTable)
+        self.actionAdd_Row.triggered.connect(self.addRow_To_Table)
 
         self.connectButton.setDisabled(True)
         self.menuActions.setDisabled(True)
         self.CheckDownload.setEnabled(False)
         self.downloadButton.setEnabled(False)
+        self.actionAdd_Row.setEnabled(False)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -99,6 +103,9 @@ class Ui_MainWindow(object):
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
         self.actionAdd_database.setText(_translate("MainWindow", "Add database"))
         self.actionAdd_table.setText(_translate("MainWindow", "Add table"))
+        self.actionAdd_Row.setText(_translate('MainWindow', "Add row"))
+
+    # Check if download mysql, if not make download
 
     def downloadAction(self):
 
@@ -111,6 +118,50 @@ class Ui_MainWindow(object):
             command = './mysql ' + self.password.text()
             os.system(command)
             self.connectButton.setDisabled(False)
+
+    def addRow_To_Table(self):
+        db = self.makeConnectWithDB()
+
+        cursor = db.cursor()
+
+        cursor.execute("SHOW COLUMNS FROM " + self.listTables.currentItem().text())
+
+        columnValues = []
+        insertValues = []
+
+        for item in cursor:
+            columnValues.append(item[0])
+            if str(item[1]).__contains__('int') or str(item[1]).__contains__('bigint'):
+                insertValues.append('0')
+            elif str(item[1]).__contains__('varchar'):
+                insertValues.append('\'\'')
+
+        columnValuesStr = ''
+        insertValuesStr = ''
+        for item in range(0, len(columnValues)):
+            if item == (len(columnValues) - 1):
+                columnValuesStr += columnValues.__getitem__(item)
+                insertValuesStr += insertValues.__getitem__(item)
+                break
+
+            columnValuesStr += columnValues.__getitem__(item) + ', '
+            insertValuesStr += insertValues.__getitem__(item) + ', '
+
+        try:
+            # good practice ( need rewrite code how here )
+
+            cursor.execute('INSERT INTO {0} ({1}) VALUES ({2});'.format(self.listTables.currentItem().text(),
+                                                                        columnValuesStr, insertValuesStr))
+
+            print('INSERT INTO {0} ({1}) VALUES ({2})'.format(self.listTables.currentItem().text(),
+                                                              columnValuesStr, insertValuesStr))
+
+            db.commit()
+
+            self.reFillTable()
+        except Exception as e:
+            self.messageWarningShow(str(e))
+            self.reFillTable()
 
     def createDatabase(self):
         self.newForm = addDatabaseDesign.Ui_AddDatabase()
@@ -137,8 +188,14 @@ class Ui_MainWindow(object):
 
     def Prikol(self, index):
         print(index)
+        textbox = QtWidgets.QLineEdit(self.table)
+        textbox.show()
 
-    def getCurrentItemFromWidget(self):
+    # fill table ( get information from selected table )
+
+    def fillTable(self):
+        self.actionAdd_Row.setEnabled(True)
+
         db = self.makeConnectWithDB()
 
         cursor = db.cursor()
@@ -174,6 +231,8 @@ class Ui_MainWindow(object):
                 columns_index += 1
             items_count += 1
 
+    # Insert all databases in combobox
+
     def updateWithComboBox(self):
 
         self.listTables.clear()
@@ -187,6 +246,8 @@ class Ui_MainWindow(object):
         for table_name in cursor:
             print(table_name)
             self.listTables.addItem(QListWidgetItem(table_name[0]))
+
+    # make first connection and check him
 
     def mysqlConnect(self):
         db = self.makeConnect()
@@ -210,6 +271,8 @@ class Ui_MainWindow(object):
             self.listTables.addItem(QListWidgetItem(table_name[0]))
 
         self.menuActions.setDisabled(False)
+
+    # make changes in database when something will changed
 
     def doChangesInTable(self):
         if self.table.currentItem() is not None:
@@ -241,24 +304,30 @@ class Ui_MainWindow(object):
                 arrayValues.append(item[self.table.currentColumn()])
                 row_id += 1
 
-            print(arrayValues.count(change_value))
-
             if arrayValues.count(change_value) > 1:
                 self.messageWarningShow(
                     'Unexpected update count received (Actual: ' + str(arrayValues.count(change_value)) +
                     ', Expected: 1). All changes will be rolled back.')
 
-                self.table.setRowCount(0)
-                self.table.setColumnCount(0)
-                self.getCurrentItemFromWidget()
+                self.reFillTable()
                 return None
 
             print(column_to_change, change_value, self.table.currentItem().text())
 
+            cursor.execute(
+                'SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = \'' + self.listTables.currentItem().text() + '\' AND COLUMN_NAME = \'' + column_to_change + '\';')
+
+            typeColumn = ''
+            for item in cursor:
+                typeColumn = item[0]
+
+            print(typeColumn)
+
             if str(change_value) == str(self.table.currentItem().text()):
                 return None
+
             try:
-                if str(change_value).isnumeric():
+                if str(type) == 'int' or str(type) == 'bigint':
                     cursor.execute(
                         'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + str(
                             column_to_change) + "=" + self.table.currentItem().text() + '' +
@@ -271,21 +340,23 @@ class Ui_MainWindow(object):
                     )
                 else:
                     cursor.execute(
-                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + column_to_change + "=\'" + self.table.currentItem().text() + '\'' +
-                        ' WHERE ' + column_to_change + '=\'' + change_value + '\';')
+                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + str(
+                            column_to_change) + "=\'" + self.table.currentItem().text() + '\'' +
+                        ' WHERE ' + str(column_to_change) + '=\'' + str(change_value) + '\';')
 
                     print(
-                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + column_to_change + " =\'" + self.table.currentItem().text() + '\'' +
-                        ' WHERE ' + column_to_change + ' =\'' + change_value + '\';')
+                        'UPDATE ' + self.listTables.currentItem().text() + ' SET ' + str(
+                            column_to_change) + " =\'" + self.table.currentItem().text() + '\'' +
+                        ' WHERE ' + str(column_to_change) + ' =\'' + str(change_value) + '\';')
             except Exception as e:
                 self.messageWarningShow(str(e))
-                self.table.setRowCount(0)
-                self.table.setColumnCount(0)
-                self.getCurrentItemFromWidget()
+                self.reFillTable()
 
             db.commit()
 
             self.table.setCurrentItem(None)
+
+    # create connection to database
 
     def makeConnect(self):
         return mysql.connector.connect(
@@ -293,6 +364,8 @@ class Ui_MainWindow(object):
             user=self.userDb,
             password=self.passwordDb,
         )
+
+    # create connection to database with database
 
     def makeConnectWithDB(self):
         return mysql.connector.connect(
@@ -302,9 +375,16 @@ class Ui_MainWindow(object):
             database=self.dbComboBox.currentText()
         )
 
+    # show warning about error
+
     def messageWarningShow(self, message):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowTitle('Warning')
         msg.setText(message)
         msg.exec_()
+
+    def reFillTable(self):
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
+        self.fillTable()
