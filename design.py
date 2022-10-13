@@ -246,6 +246,9 @@ class Ui_MainWindow(object):
 
     def mysqlConnect(self):
         self.dbComboBox.clear()
+        self.listTables.clear()
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
 
         db = self.makeConnect()
 
@@ -342,7 +345,8 @@ class Ui_MainWindow(object):
                     if columnNamePrimary == headertext:
                         numberOfPrimaryColumn = x
 
-                change_value = self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()
+                if numberOfPrimaryColumn != self.table.currentColumn():
+                    change_value = self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()
                 print('id {}'.format(self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()))
 
             if arrayValues.count(change_value) > 1 and havePrimaryKey is False:
