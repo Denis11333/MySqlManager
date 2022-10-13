@@ -1,2 +1,2 @@
 # MySqlManager
-This app can download and do manage mysql server service
+This app can download and do edits in mysql server
