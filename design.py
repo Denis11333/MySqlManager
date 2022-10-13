@@ -59,9 +59,12 @@ class Ui_MainWindow(object):
         self.actionAdd_table.setObjectName("actionAdd_table")
         self.actionAdd_Row = QtWidgets.QAction(MainWindow)
         self.actionAdd_Row.setObjectName('actionAdd_Row')
+        self.actionRemove_Row = QtWidgets.QAction(MainWindow)
+        self.actionRemove_Row.setObjectName("actionRemove_Row")
         self.menuActions.addAction(self.actionAdd_database)
         self.menuActions.addAction(self.actionAdd_table)
         self.menuActions.addAction(self.actionAdd_Row)
+        self.menuActions.addAction(self.actionRemove_Row)
         self.menubar.addAction(self.menuActions.menuAction())
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
 
@@ -78,11 +81,11 @@ class Ui_MainWindow(object):
         self.connectButton.clicked.connect(self.mysqlConnect)
         self.dbComboBox.activated.connect(self.updateWithComboBox)
         self.listTables.activated.connect(self.fillTable)
-        self.table.horizontalHeader().sectionClicked.connect(self.Prikol)
         self.actionAdd_database.triggered.connect(self.createDatabase)
         self.password.textChanged.connect(self.passwordChange)
         self.table.itemChanged.connect(self.doChangesInTable)
         self.actionAdd_Row.triggered.connect(self.addRow_To_Table)
+        self.actionRemove_Row.triggered.connect(self.remove_Selected_Row)
 
         self.connectButton.setDisabled(True)
         self.menuActions.setDisabled(True)
@@ -95,7 +98,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.downloadButton.setText(_translate("MainWindow", "Download\n"
                                                              "\n"
-                                                             "check if downlaod"))
+                                                             "check if download"))
         self.connectButton.setText(_translate("MainWindow", "Connect\n\nreconnect"))
         self.CheckDownload.setText(_translate("MainWindow", "Download"))
         self.labelForRoot.setText(_translate("MainWindow", "Password for root : "))
@@ -103,6 +106,7 @@ class Ui_MainWindow(object):
         self.actionAdd_database.setText(_translate("MainWindow", "Add database"))
         self.actionAdd_table.setText(_translate("MainWindow", "Add table"))
         self.actionAdd_Row.setText(_translate('MainWindow', "Add row"))
+        self.actionRemove_Row.setText(_translate('MainWindow', 'Delete selected row'))
 
     # Check if download mysql, if not make download
 
@@ -117,6 +121,101 @@ class Ui_MainWindow(object):
             command = './mysql {0}'.format(self.password.text())
             os.system(command)
             self.connectButton.setDisabled(False)
+
+    # action on delete
+
+    def remove_Selected_Row(self):
+        if self.table.currentItem() is None:
+            self.messageWarningShow('Row in not selected')
+            return
+
+        db = self.makeConnectWithDB()
+
+        cursor = db.cursor()
+
+        cursor.execute(
+            'select column_name, case when column_key= \'PRI\' then \'Primary\' else \'Not primary\' end as Output '
+            'from information_schema.columns  where table_schema =\'{0}\' and `table_name` = \'{1}\';'
+            .format(self.dbComboBox.currentText(), self.listTables.currentItem().text()))
+
+        print(
+            'select column_name, case when column_key= \'PRI\' then \'Primary\' else \'Not primary\' end as Output '
+            'from information_schema.columns  where table_schema =\'{0}\' and `table_name` = \'{1}\';'
+            .format(self.dbComboBox.currentText(), self.listTables.currentItem().text()))
+
+        havePrimaryKey = False
+        columnNamePrimary = ''
+        for item in cursor:
+            print(item)
+            if str(item[1]) == 'Primary':
+                havePrimaryKey = True
+                columnNamePrimary = str(item[0])
+
+        try:
+            if havePrimaryKey:
+                numberOfPrimaryColumn = 0
+                headercount = self.table.columnCount()
+                for x in range(headercount):
+                    columnName = self.table.horizontalHeaderItem(x).text()
+                    if columnNamePrimary == columnName:
+                        numberOfPrimaryColumn = x
+
+                if numberOfPrimaryColumn != self.table.currentColumn():
+                    change_value = self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()
+                print('{0} {1}'.format(columnNamePrimary,
+                                       self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()))
+
+                cursor.execute('DELETE FROM {0} WHERE {1} = {2};'
+                               .format(self.listTables.currentItem().text(),
+                                       columnNamePrimary,
+                                       self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()))
+
+                print('DELETE FROM {0} WHERE \'{1}\' = \'{2}\';'
+                      .format(self.listTables.currentItem().text(),
+                              columnNamePrimary,
+                              self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()))
+            else:
+                cursor.execute('SHOW COLUMNS FROM {0}'.format(self.listTables.currentItem().text()))
+
+                namesOfColumns = ''
+                counter = 0
+                for item in cursor:
+                    print(item)
+                    print(self.table.item(self.table.currentRow(), counter).text())
+
+                    if counter == self.table.columnCount() - 1:
+                        namesOfColumns += '{0} = \'{1}\';'.format(item[0],
+                                                                  self.table.item(self.table.currentRow(),
+                                                                                  counter).text())
+                    else:
+                        namesOfColumns += '{0} = \'{1}\' AND '.format(item[0],
+                                                                      self.table.item(self.table.currentRow(),
+                                                                                      counter).text())
+                    counter += 1
+
+                cursor.execute('SELECT * FROM {0} WHERE {1}'.format(self.listTables.currentItem().text(),
+                                                                    namesOfColumns))
+                counter = 0
+                for item in cursor:
+                    counter += 1
+
+                if counter > 1:
+                    self.messageWarningShow(
+                        'Unexpected update count received (Actual: {0} Expected: 1). All changes will be rolled back.'
+                        .format(str(counter)))
+                    return
+
+                cursor.execute('DELETE FROM {0} WHERE {1}'.format(self.listTables.currentItem().text(),
+                                                                  namesOfColumns))
+
+                print('DELETE FROM {0} WHERE {1}'.format(self.listTables.currentItem().text(),
+                                                         namesOfColumns))
+        except Exception as e:
+            self.messageWarningShow(str(e))
+            self.reFillTable()
+
+        db.commit()
+        self.reFillTable()
 
     def addRow_To_Table(self):
         db = self.makeConnectWithDB()
@@ -160,6 +259,10 @@ class Ui_MainWindow(object):
             self.messageWarningShow(str(e))
             self.reFillTable()
 
+    #
+    # need think something better
+    #
+
     def createDatabase(self):
         self.newForm = addDatabaseDesign.Ui_AddDatabase()
         self.newForm.setupUi(self)
@@ -167,12 +270,20 @@ class Ui_MainWindow(object):
         self.newForm.saveButton.clicked.connect(self.goBack)
         self.newForm.backButton.clicked.connect(self.justGoBack)
 
+    #
+    # need think something better
+    #
+
     def goBack(self):
         db = self.makeConnect()
         cursor = db.cursor()
         cursor.execute('CREATE DATABASE {0}'.format(str(self.newForm.inputEdit.text())))
         self.setupUi(self)
         self.mysqlConnect()
+
+    #
+    # need think something better
+    #
 
     def justGoBack(self):
         self.setupUi(self)
@@ -182,9 +293,6 @@ class Ui_MainWindow(object):
 
     def passwordChange(self):
         self.downloadButton.setEnabled(True)
-
-    def Prikol(self, index):
-        print(index)
 
     # fill table ( get information from selected table )
 
@@ -304,29 +412,17 @@ class Ui_MainWindow(object):
                 arrayValues.append(item[self.table.currentColumn()])
                 row_id += 1
 
-            print(column_to_change, change_value, self.table.currentItem().text())
-
-            cursor.execute(
-                'SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = \'{0}\' AND COLUMN_NAME = \'{1}\';'
-                .format(self.listTables.currentItem().text(), column_to_change))
-
-            typeColumn = ''
-            for item in cursor:
-                typeColumn = item[0]
-
-            print(typeColumn)
-
             if str(change_value) == str(self.table.currentItem().text()):
                 return None
 
             cursor.execute(
                 'select column_name, case when column_key= \'PRI\' then \'Primary\' else \'Not primary\' end as Output '
-                'from information_schema.columns  where table_schema =\'{0}\' and `table_name` = \'{1}\';'
+                'from information_schema.columns  where table_schema = \'{0}\' and `table_name` = \'{1}\';'
                 .format(self.dbComboBox.currentText(), self.listTables.currentItem().text()))
 
             print(
                 'select column_name, case when column_key= \'PRI\' then \'Primary\' else \'Not primary\' end as Output '
-                'from information_schema.columns  where table_schema =\'{0}\' and `table_name` = \'{1}\';'
+                'from information_schema.columns  where table_schema = \'{0}\' and `table_name` = \'{1}\';'
                 .format(self.dbComboBox.currentText(), self.listTables.currentItem().text()))
 
             havePrimaryKey = False
@@ -341,13 +437,12 @@ class Ui_MainWindow(object):
                 numberOfPrimaryColumn = 0
                 headercount = self.table.columnCount()
                 for x in range(headercount):
-                    headertext = self.table.horizontalHeaderItem(x).text()
-                    if columnNamePrimary == headertext:
+                    columnName = self.table.horizontalHeaderItem(x).text()
+                    if columnNamePrimary == columnName:
                         numberOfPrimaryColumn = x
 
                 if numberOfPrimaryColumn != self.table.currentColumn():
                     change_value = self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()
-                print('id {}'.format(self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()))
 
             if arrayValues.count(change_value) > 1 and havePrimaryKey is False:
                 self.messageWarningShow(
@@ -355,41 +450,24 @@ class Ui_MainWindow(object):
                     .format(str(arrayValues.count(change_value))))
 
                 self.reFillTable()
-                return None
+                return
 
             try:
-                if str(type) == 'int' or str(type) == 'bigint':
-                    cursor.execute(
-                        'UPDATE {0} SET {1} = {2} WHERE {3} = {4};'.format(self.listTables.currentItem().text(),
-                                                                           str(column_to_change),
-                                                                           self.table.currentItem().text(),
-                                                                           str(columnNamePrimary) if havePrimaryKey else str(
-                                                                               column_to_change),
-                                                                           str(change_value))
-                    )
-                    print('UPDATE {0} SET {1} = {2} WHERE {3} = {4};'.format(self.listTables.currentItem().text(),
-                                                                             str(column_to_change),
-                                                                             self.table.currentItem().text(),
-                                                                             str(columnNamePrimary) if havePrimaryKey else str(
-                                                                                 column_to_change),
-                                                                             str(change_value))
-                          )
-                else:
-                    cursor.execute('UPDATE {0} SET {1} = \'{2}\' WHERE {3} = \'{4}\';'.format(
-                        self.listTables.currentItem().text(),
-                        str(column_to_change),
-                        self.table.currentItem().text(),
-                        str(columnNamePrimary) if havePrimaryKey else str(column_to_change),
-                        str(change_value))
-                    )
+                cursor.execute('UPDATE {0} SET {1} = \'{2}\' WHERE {3} = \'{4}\';'.format(
+                    self.listTables.currentItem().text(),
+                    str(column_to_change),
+                    self.table.currentItem().text(),
+                    str(columnNamePrimary) if havePrimaryKey else str(column_to_change),
+                    str(change_value))
+                )
 
-                    print('UPDATE {0} SET {1} = \'{2}\' WHERE {3} = \'{4}\';'.format(
-                        self.listTables.currentItem().text(),
-                        str(column_to_change),
-                        self.table.currentItem().text(),
-                        str(columnNamePrimary) if havePrimaryKey else str(column_to_change),
-                        str(change_value))
-                    )
+                print('UPDATE {0} SET {1} = \'{2}\' WHERE {3} = \'{4}\';'.format(
+                    self.listTables.currentItem().text(),
+                    str(column_to_change),
+                    self.table.currentItem().text(),
+                    str(columnNamePrimary) if havePrimaryKey else str(column_to_change),
+                    str(change_value))
+                )
             except Exception as e:
                 self.messageWarningShow(str(e))
                 self.reFillTable()
