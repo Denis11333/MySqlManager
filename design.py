@@ -95,7 +95,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "MySqlManager"))
         self.downloadButton.setText(_translate("MainWindow", "Download\n"
                                                              "\n"
                                                              "check if download"))
@@ -111,16 +111,27 @@ class Ui_MainWindow(object):
     # Check if download mysql, if not make download
 
     def downloadAction(self):
+        self.messageInfromationShow('Download started, press \'OK\' and wait while MySQL will downloaded...\n'
+                                    '( make sure that the password is entered correctly )')
 
         text = os.popen('echo {0} | sudo -S apt list --installed'.format(self.password.text())).read()
 
         if text.__contains__('mysql'):
             self.CheckDownload.setChecked(True)
             self.connectButton.setDisabled(False)
+            self.messageInfromationShow('Mysql is installed')
         else:
             command = './mysql {0}'.format(self.password.text())
             os.system(command)
+
+            text = os.popen('echo {0} | sudo -S apt list --installed'.format(self.password.text())).read()
+            if text.__contains__('mysql'):
+                self.messageWarningShow('Install failed, try again with another password')
+                return
+
             self.connectButton.setDisabled(False)
+            self.messageInfromationShow('Mysql is installed')
+
 
     # action on delete
 
@@ -258,38 +269,6 @@ class Ui_MainWindow(object):
         except Exception as e:
             self.messageWarningShow(str(e))
             self.reFillTable()
-
-    #
-    # need think something better
-    #
-
-    def createDatabase(self):
-        self.newForm = addDatabaseDesign.Ui_AddDatabase()
-        self.newForm.setupUi(self)
-        self.newForm.infoAboutEdit.setText('Enter a name for database')
-        self.newForm.saveButton.clicked.connect(self.goBack)
-        self.newForm.backButton.clicked.connect(self.justGoBack)
-
-    #
-    # need think something better
-    #
-
-    def goBack(self):
-        db = self.makeConnect()
-        cursor = db.cursor()
-        cursor.execute('CREATE DATABASE {0}'.format(str(self.newForm.inputEdit.text())))
-        self.setupUi(self)
-        self.mysqlConnect()
-
-    #
-    # need think something better
-    #
-
-    def justGoBack(self):
-        self.setupUi(self)
-        self.CheckDownload.setChecked(True)
-        self.connectButton.setDisabled(False)
-        self.mysqlConnect()
 
     def passwordChange(self):
         self.downloadButton.setEnabled(True)
@@ -476,6 +455,42 @@ class Ui_MainWindow(object):
 
             self.table.setCurrentItem(None)
 
+    #
+    # need think something better
+    #
+
+    def createDatabase(self):
+        self.newForm = addDatabaseDesign.Ui_AddDatabase()
+        self.newForm.setupUi(self)
+        self.newForm.infoAboutEdit.setText('Enter a name for database')
+        self.newForm.saveButton.clicked.connect(self.goBack)
+        self.newForm.backButton.clicked.connect(self.justGoBack)
+
+    #
+    # need think something better
+    #
+
+    def goBack(self):
+        db = self.makeConnect()
+        cursor = db.cursor()
+        cursor.execute('CREATE DATABASE {0}'.format(str(self.newForm.inputEdit.text())))
+        self.setupUi(self)
+        self.mysqlConnect()
+
+        self.unBlock()
+
+    #
+    # need think something better
+    #
+
+    def justGoBack(self):
+        self.setupUi(self)
+        self.CheckDownload.setChecked(True)
+        self.connectButton.setDisabled(False)
+        self.mysqlConnect()
+
+        self.unBlock()
+
     # create connection to database
 
     def makeConnect(self):
@@ -504,9 +519,19 @@ class Ui_MainWindow(object):
         msg.setText(message)
         msg.exec_()
 
+    def messageInfromationShow(self, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle('Information')
+        msg.setText(message)
+        msg.exec_()
+
     # right refill table
 
     def reFillTable(self):
         self.table.setRowCount(0)
         self.table.setColumnCount(0)
         self.fillTable()
+    def unBlock(self):
+        self.connectButton.setDisabled(False)
+        self.downloadButton.setDisabled(False)
