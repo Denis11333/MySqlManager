@@ -36,3 +36,5 @@ class Ui_AddDatabase(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MySqlManager"))
         self.saveButton.setText(_translate("MainWindow", "Apply and go back"))
         self.backButton.setText(_translate("MainWindow", "just back"))
+
+
