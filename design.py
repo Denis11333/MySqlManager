@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMes
 
 import addDatabaseDesign
 import createTable
-import queryList
 
 
 # code need to rewrite, but hi is work
@@ -17,9 +16,6 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1364, 760)
-
-        self.queryList = ''
-
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.formLayout = QtWidgets.QFormLayout(self.centralwidget)
@@ -54,9 +50,6 @@ class Ui_MainWindow(object):
         self.connectButton = QtWidgets.QPushButton(self.centralwidget)
         self.connectButton.setObjectName("connectButton")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.connectButton)
-        self.queryListButton = QtWidgets.QPushButton(self.centralwidget)
-        self.queryListButton.setObjectName("pushButton")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.queryListButton)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1364, 22))
@@ -120,13 +113,10 @@ class Ui_MainWindow(object):
         self.actionDelete_selected_database.triggered.connect(self.deleteDatabase)
         self.actionDelete_selected_table.triggered.connect(self.deleteTable)
 
-        self.queryListButton.clicked.connect(self.showQueryList)
-
         self.connectButton.setDisabled(True)
         self.menuActions.setDisabled(True)
         self.downloadButton.setEnabled(False)
         self.actionAdd_Row.setEnabled(False)
-        self.queryListButton.setEnabled(False)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -134,7 +124,6 @@ class Ui_MainWindow(object):
         self.labelForRoot.setText(_translate("MainWindow", "Password for root"))
         self.downloadButton.setText(_translate("MainWindow", "Download mysql or check if download"))
         self.connectButton.setText(_translate("MainWindow", "connect or reconnect to database"))
-        self.queryListButton.setText(_translate("MainWindow", "Sql query list"))
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
         # self.menuconfiguration_db.setTitle(_translate("MainWindow", "Database ( conf )"))
         self.actionAdd_database.setText(_translate("MainWindow", "Add database"))
@@ -399,7 +388,6 @@ class Ui_MainWindow(object):
             self.listTables.addItem(QListWidgetItem(table_name[0]))
 
         self.menuActions.setDisabled(False)
-        self.queryListButton.setEnabled(True)
 
     # make changes in database when something will changed
 
@@ -631,16 +619,6 @@ class Ui_MainWindow(object):
             self.justGoBack()
         except Exception as e:
             self.messageWarningShow(str(e))
-
-    #
-
-    def showQueryList(self):
-        self.newForm = queryList.Ui_MainWindow()
-        self.newForm.setupUi(self)
-
-        self.newForm.queryShowLine.setText(self.queryList)
-
-        self.newForm.Back.clicked.connect(self.justGoBack)
 
     # delete database action
 
