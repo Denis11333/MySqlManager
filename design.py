@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMes
 
 import addDatabaseDesign
 import createTable
+import queryList
 
 
 # code need to rewrite, but hi is work
@@ -15,42 +16,55 @@ import createTable
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1069, 600)
+        MainWindow.resize(1364, 760)
+
+        self.queryList = ''
+
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.password = QtWidgets.QLineEdit(self.centralwidget)
-        self.password.setGeometry(QtCore.QRect(870, 520, 191, 31))
-        self.password.setObjectName("password")
-        self.downloadButton = QtWidgets.QPushButton(self.centralwidget)
-        self.downloadButton.setGeometry(QtCore.QRect(480, 500, 201, 51))
-        self.downloadButton.setAutoFillBackground(False)
-        self.downloadButton.setObjectName("downloadButton")
-        self.connectButton = QtWidgets.QPushButton(self.centralwidget)
-        self.connectButton.setGeometry(QtCore.QRect(260, 500, 221, 51))
-        self.connectButton.setObjectName("connectButton")
-        self.listTables = QtWidgets.QListWidget(self.centralwidget)
-        self.listTables.setGeometry(QtCore.QRect(0, 30, 261, 521))
-        self.listTables.setObjectName("listTables")
+        self.formLayout = QtWidgets.QFormLayout(self.centralwidget)
+        self.formLayout.setObjectName("formLayout")
+        self.firstLayout = QtWidgets.QVBoxLayout()
+        self.firstLayout.setObjectName("firstLayout")
         self.dbComboBox = QtWidgets.QComboBox(self.centralwidget)
-        self.dbComboBox.setGeometry(QtCore.QRect(0, 0, 261, 31))
-        self.dbComboBox.setObjectName("DbComboBox")
+        self.dbComboBox.setObjectName("dbComboBox")
+        self.firstLayout.addWidget(self.dbComboBox)
+        self.listTables = QtWidgets.QListWidget(self.centralwidget)
+        self.listTables.setObjectName("listTables")
+        self.firstLayout.addWidget(self.listTables)
+        self.formLayout.setLayout(0, QtWidgets.QFormLayout.LabelRole, self.firstLayout)
+        self.secondLoyout = QtWidgets.QHBoxLayout()
+        self.secondLoyout.setObjectName("secondLoyout")
         self.table = QtWidgets.QTableWidget(self.centralwidget)
-        self.table.setGeometry(QtCore.QRect(260, 0, 801, 501))
         self.table.setObjectName("table")
         self.table.setColumnCount(0)
         self.table.setRowCount(0)
-        self.CheckDownload = QtWidgets.QCheckBox(self.centralwidget)
-        self.CheckDownload.setGeometry(QtCore.QRect(690, 510, 181, 31))
-        self.CheckDownload.setObjectName("CheckDownload")
+        self.secondLoyout.addWidget(self.table)
+        self.formLayout.setLayout(0, QtWidgets.QFormLayout.FieldRole, self.secondLoyout)
+        self.password = QtWidgets.QLineEdit(self.centralwidget)
+        self.password.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.password.setObjectName("password")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.password)
         self.labelForRoot = QtWidgets.QLabel(self.centralwidget)
-        self.labelForRoot.setGeometry(QtCore.QRect(870, 500, 191, 20))
-        self.labelForRoot.setObjectName("lineEdit")
+        self.labelForRoot.setObjectName("labelForRoot")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.labelForRoot)
+        self.downloadButton = QtWidgets.QPushButton(self.centralwidget)
+        self.downloadButton.setObjectName("downloadButton")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.downloadButton)
+        self.connectButton = QtWidgets.QPushButton(self.centralwidget)
+        self.connectButton.setObjectName("connectButton")
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.connectButton)
+        self.queryListButton = QtWidgets.QPushButton(self.centralwidget)
+        self.queryListButton.setObjectName("pushButton")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.queryListButton)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1069, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1364, 22))
         self.menubar.setObjectName("menubar")
         self.menuActions = QtWidgets.QMenu(self.menubar)
         self.menuActions.setObjectName("menuActions")
+        # self.menuconfiguration_db = QtWidgets.QMenu(self.menubar)
+        # self.menuconfiguration_db.setObjectName("menuconfiguration_db")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -60,15 +74,29 @@ class Ui_MainWindow(object):
         self.actionAdd_table = QtWidgets.QAction(MainWindow)
         self.actionAdd_table.setObjectName("actionAdd_table")
         self.actionAdd_Row = QtWidgets.QAction(MainWindow)
-        self.actionAdd_Row.setObjectName('actionAdd_Row')
+        self.actionAdd_Row.setObjectName("actionAdd_Row")
         self.actionRemove_Row = QtWidgets.QAction(MainWindow)
         self.actionRemove_Row.setObjectName("actionRemove_Row")
+        self.actionDatabase_info_change = QtWidgets.QAction(MainWindow)
+        self.actionDatabase_info_change.setObjectName("actionDatabase_info_change")
+        self.actionchange_configuration = QtWidgets.QAction(MainWindow)
+        self.actionchange_configuration.setObjectName("actionchange_configuration")
+        self.actionDelete_selected_database = QtWidgets.QAction(MainWindow)
+        self.actionDelete_selected_database.setObjectName("actionDelete_selected_database")
+        self.actionDelete_selected_table = QtWidgets.QAction(MainWindow)
+        self.actionDelete_selected_table.setObjectName("actionDelete_selected_table")
+        # self.changePasswordForUser = QtWidgets.QAction(MainWindow)
+        # self.changePasswordForUser.setObjectName('changePasswordForUser')
         self.menuActions.addAction(self.actionAdd_database)
         self.menuActions.addAction(self.actionAdd_table)
         self.menuActions.addAction(self.actionAdd_Row)
         self.menuActions.addAction(self.actionRemove_Row)
+        self.menuActions.addAction(self.actionDelete_selected_database)
+        self.menuActions.addAction(self.actionDelete_selected_table)
+        # self.menuconfiguration_db.addAction(self.actionchange_configuration)
+        # self.menuconfiguration_db.addAction(self.changePasswordForUser)
         self.menubar.addAction(self.menuActions.menuAction())
-        self.password.setEchoMode(QtWidgets.QLineEdit.Password)
+        # self.menubar.addAction(self.menuconfiguration_db.menuAction())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -80,7 +108,7 @@ class Ui_MainWindow(object):
         self.passwordDb = 'mysqlManagerPassword1_'
 
         self.downloadButton.clicked.connect(self.downloadAction)
-        self.connectButton.clicked.connect(self.mysqlConnect)
+        self.connectButton.clicked.connect(self.connectAndFillComboBox)
         self.dbComboBox.activated.connect(self.updateWithComboBox)
         self.listTables.activated.connect(self.fillTable)
         self.actionAdd_database.triggered.connect(self.createDatabase)
@@ -89,27 +117,36 @@ class Ui_MainWindow(object):
         self.actionAdd_Row.triggered.connect(self.addRow_To_Table)
         self.actionRemove_Row.triggered.connect(self.remove_Selected_Row)
         self.actionAdd_table.triggered.connect(self.createTableForm)
+        self.actionDelete_selected_database.triggered.connect(self.deleteDatabase)
+        self.actionDelete_selected_table.triggered.connect(self.deleteTable)
+
+        self.queryListButton.clicked.connect(self.showQueryList)
 
         self.connectButton.setDisabled(True)
         self.menuActions.setDisabled(True)
-        self.CheckDownload.setEnabled(False)
         self.downloadButton.setEnabled(False)
         self.actionAdd_Row.setEnabled(False)
+        self.queryListButton.setEnabled(False)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MySqlManager"))
-        self.downloadButton.setText(_translate("MainWindow", "Download\n"
-                                                             "\n"
-                                                             "check if download"))
-        self.connectButton.setText(_translate("MainWindow", "Connect\n\nreconnect"))
-        self.CheckDownload.setText(_translate("MainWindow", "Download"))
-        self.labelForRoot.setText(_translate("MainWindow", "Password for root : "))
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.labelForRoot.setText(_translate("MainWindow", "Password for root"))
+        self.downloadButton.setText(_translate("MainWindow", "Download mysql or check if download"))
+        self.connectButton.setText(_translate("MainWindow", "connect or reconnect to database"))
+        self.queryListButton.setText(_translate("MainWindow", "Sql query list"))
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
+        # self.menuconfiguration_db.setTitle(_translate("MainWindow", "Database ( conf )"))
         self.actionAdd_database.setText(_translate("MainWindow", "Add database"))
         self.actionAdd_table.setText(_translate("MainWindow", "Add table"))
-        self.actionAdd_Row.setText(_translate('MainWindow', "Add row"))
-        self.actionRemove_Row.setText(_translate('MainWindow', 'Delete selected row'))
+        self.actionAdd_Row.setText(_translate("MainWindow", "Add row"))
+        self.actionRemove_Row.setText(_translate("MainWindow", "Delete selected ROW"))
+        # self.actionDatabase_info_change.setText(_translate("MainWindow", "Database info change"))
+        # self.actionchange_configuration.setText(_translate("MainWindow", "Change configuration"))
+        self.actionDelete_selected_database.setText(_translate("MainWindow", "Delete selected DATABASE"))
+        self.actionDelete_selected_table.setText(_translate("MainWindow", "Delete selected TABLE"))
+        self.password.setPlaceholderText('Write root password here...')
+        # self.changePasswordForUser.setText('Change password for user')
 
     # Check if download mysql, if not make download
 
@@ -120,20 +157,20 @@ class Ui_MainWindow(object):
         text = os.popen('echo {0} | sudo -S apt list --installed'.format(self.password.text())).read()
 
         if text.__contains__('mysql'):
-            self.CheckDownload.setChecked(True)
-            self.connectButton.setDisabled(False)
             self.messageInfromationShow('Mysql is installed')
         else:
             command = './mysql {0}'.format(self.password.text())
             os.system(command)
 
             text = os.popen('echo {0} | sudo -S apt list --installed'.format(self.password.text())).read()
-            if text.__contains__('mysql'):
+            if not text.__contains__('mysql'):
                 self.messageWarningShow('Install failed, try again with another password')
                 return
 
-            self.connectButton.setDisabled(False)
             self.messageInfromationShow('Mysql is installed')
+
+        self.connectButton.setDisabled(False)
+        self.password.setDisabled(True)
 
     # action on delete
 
@@ -335,7 +372,7 @@ class Ui_MainWindow(object):
 
     # make first connection and check him
 
-    def mysqlConnect(self):
+    def connectAndFillComboBox(self):
         self.dbComboBox.clear()
         self.listTables.clear()
         self.table.setRowCount(0)
@@ -362,6 +399,7 @@ class Ui_MainWindow(object):
             self.listTables.addItem(QListWidgetItem(table_name[0]))
 
         self.menuActions.setDisabled(False)
+        self.queryListButton.setEnabled(True)
 
     # make changes in database when something will changed
 
@@ -459,7 +497,7 @@ class Ui_MainWindow(object):
 
             self.table.setCurrentItem(None)
 
-    # create table
+    # open form with create table
 
     def createTableForm(self):
         self.newForm = createTable.Ui_createTable()
@@ -471,6 +509,7 @@ class Ui_MainWindow(object):
         self.newForm.deleteColumn.clicked.connect(self.deleteColumn)
         self.newForm.create_Table.clicked.connect(self.createTable)
 
+    # add new column action
     def addColumnToNewTable(self):
         columnName = QtWidgets.QLineEdit(self.newForm.scrollAreaWidgetContents)
         columnName.setPlaceholderText('Column name')
@@ -484,7 +523,7 @@ class Ui_MainWindow(object):
         primary_key.setEditable(True)
         primary_key.addItem('Not a primary key')
         primary_key.addItem('Primary key')
-        primary_key.addItem('Primary key auto_increment ( auto create int )')
+        primary_key.addItem('Primary key auto_increment')
 
         additionalText = QtWidgets.QLineEdit(self.newForm.scrollAreaWidgetContents)
         additionalText.setPlaceholderText('Parameters for example varchar( your param )')
@@ -505,6 +544,7 @@ class Ui_MainWindow(object):
         self.newForm.array.append(additionalText)
         self.newForm.array.append(line)
 
+    # delete column action
     def deleteColumn(self):
         count = len(self.newForm.array)
         tempArray = []
@@ -515,6 +555,8 @@ class Ui_MainWindow(object):
 
         for item in tempArray:
             self.newForm.array.remove(item)
+
+    # create table action
 
     def createTable(self):
         if len(self.newForm.array) == 0:
@@ -566,9 +608,6 @@ class Ui_MainWindow(object):
 
         try:
             for array in AllColumnsArray:
-                if array[2] == 'Primary key auto_increment ( auto create int )':
-                    array[1] = 'int'
-
                 if array[1].__contains__('varchar'):
                     if array[3] != 'param' and array[3].isnumeric():
                         array[1] = array[1].replace('30', array[3])
@@ -578,7 +617,7 @@ class Ui_MainWindow(object):
 
                 createString += '{0} {1}'.format(array[0], array[1])
 
-                if array[2] == 'Primary key auto_increment ( auto create int )':
+                if array[2] == 'Primary key auto_increment':
                     createString += ' primary key auto_increment'
 
                 if array[2] == 'Primary key':
@@ -593,9 +632,47 @@ class Ui_MainWindow(object):
         except Exception as e:
             self.messageWarningShow(str(e))
 
-    # ---------------------
+    #
 
-    # create database
+    def showQueryList(self):
+        self.newForm = queryList.Ui_MainWindow()
+        self.newForm.setupUi(self)
+
+        self.newForm.queryShowLine.setText(self.queryList)
+
+        self.newForm.Back.clicked.connect(self.justGoBack)
+
+    # delete database action
+
+    def deleteDatabase(self):
+        db = self.makeConnect()
+
+        cursor = db.cursor()
+
+        try:
+            cursor.execute('DROP DATABASE {0};'.format(self.dbComboBox.currentText()))
+        except Exception as e:
+            self.messageWarningShow(str(e))
+
+        self.connectAndFillComboBox()
+
+    def deleteTable(self):
+        if self.listTables.currentItem() is None:
+            self.messageWarningShow('Table is not selected')
+            return
+
+        db = self.makeConnectWithDB()
+
+        cursor = db.cursor()
+
+        try:
+            cursor.execute('DROP TABLE {0};'.format(self.listTables.currentItem().text()))
+        except Exception as e:
+            self.messageWarningShow(str(e))
+
+        self.updateWithComboBox()
+
+    # create database action
 
     def createDatabase(self):
         self.newForm = addDatabaseDesign.Ui_AddDatabase()
@@ -604,24 +681,24 @@ class Ui_MainWindow(object):
         self.newForm.saveButton.clicked.connect(self.createDbAndGoBack)
         self.newForm.backButton.clicked.connect(self.justGoBack)
 
-    def createDbAndGoBack(self, query):
+    # create and back to main window
+
+    def createDbAndGoBack(self):
         db = self.makeConnect()
         cursor = db.cursor()
         cursor.execute('CREATE DATABASE {0}'.format(str(self.newForm.inputEdit.text())))
         self.setupUi(self)
-        self.mysqlConnect()
+        self.connectAndFillComboBox()
 
         self.unBlock()
 
+    # back to main window
     def justGoBack(self):
         self.setupUi(self)
-        self.CheckDownload.setChecked(True)
         self.connectButton.setDisabled(False)
-        self.mysqlConnect()
+        self.connectAndFillComboBox()
 
         self.unBlock()
-
-    # ---------------------
 
     # create connection to database
 

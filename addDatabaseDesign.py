@@ -1,27 +1,28 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-
 class Ui_AddDatabase(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(481, 161)
+        MainWindow.resize(522, 210)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.saveButton = QtWidgets.QPushButton(self.centralwidget)
-        self.saveButton.setGeometry(QtCore.QRect(330, 20, 141, 31))
-        self.saveButton.setObjectName("saveButton")
-        self.inputEdit = QtWidgets.QLineEdit(self.centralwidget)
-        self.inputEdit.setGeometry(QtCore.QRect(20, 80, 301, 31))
-        self.inputEdit.setObjectName("inputEdit")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setObjectName("verticalLayout")
         self.infoAboutEdit = QtWidgets.QLabel(self.centralwidget)
-        self.infoAboutEdit.setGeometry(QtCore.QRect(20, 20, 301, 31))
-        self.infoAboutEdit.setObjectName("infoAboutEdit")
+        self.infoAboutEdit.setObjectName("label")
+        self.verticalLayout.addWidget(self.infoAboutEdit)
+        self.inputEdit = QtWidgets.QLineEdit(self.centralwidget)
+        self.inputEdit.setObjectName("textEdit")
+        self.verticalLayout.addWidget(self.inputEdit)
+        self.saveButton = QtWidgets.QPushButton(self.centralwidget)
+        self.saveButton.setObjectName("saveButton")
+        self.verticalLayout.addWidget(self.saveButton)
         self.backButton = QtWidgets.QPushButton(self.centralwidget)
-        self.backButton.setGeometry(QtCore.QRect(330, 80, 141, 31))
         self.backButton.setObjectName("backButton")
+        self.verticalLayout.addWidget(self.backButton)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 481, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 522, 22))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -33,8 +34,7 @@ class Ui_AddDatabase(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MySqlManager"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.infoAboutEdit.setText(_translate("MainWindow", "TextLabel"))
         self.saveButton.setText(_translate("MainWindow", "Apply and go back"))
         self.backButton.setText(_translate("MainWindow", "just back"))
-
-
