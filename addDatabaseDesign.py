@@ -1,9 +1,11 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class Ui_AddDatabase(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(522, 210)
+        MainWindow.setWindowTitle('OK')
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -38,3 +40,4 @@ class Ui_AddDatabase(object):
         self.infoAboutEdit.setText(_translate("MainWindow", "TextLabel"))
         self.saveButton.setText(_translate("MainWindow", "Apply and go back"))
         self.backButton.setText(_translate("MainWindow", "just back"))
+

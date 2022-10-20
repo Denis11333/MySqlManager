@@ -1,10 +1,10 @@
 import inspect
 import os
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 import mysql.connector
-from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMessageBox
+from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMessageBox, QMainWindow
 
 import addDatabaseDesign
 import createTable
@@ -56,8 +56,6 @@ class Ui_MainWindow(object):
         self.menubar.setObjectName("menubar")
         self.menuActions = QtWidgets.QMenu(self.menubar)
         self.menuActions.setObjectName("menuActions")
-        # self.menuconfiguration_db = QtWidgets.QMenu(self.menubar)
-        # self.menuconfiguration_db.setObjectName("menuconfiguration_db")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -78,18 +76,13 @@ class Ui_MainWindow(object):
         self.actionDelete_selected_database.setObjectName("actionDelete_selected_database")
         self.actionDelete_selected_table = QtWidgets.QAction(MainWindow)
         self.actionDelete_selected_table.setObjectName("actionDelete_selected_table")
-        # self.changePasswordForUser = QtWidgets.QAction(MainWindow)
-        # self.changePasswordForUser.setObjectName('changePasswordForUser')
-        self.menuActions.addAction(self.actionAdd_database)
-        self.menuActions.addAction(self.actionAdd_table)
         self.menuActions.addAction(self.actionAdd_Row)
+        self.menuActions.addAction(self.actionAdd_table)
+        self.menuActions.addAction(self.actionAdd_database)
         self.menuActions.addAction(self.actionRemove_Row)
-        self.menuActions.addAction(self.actionDelete_selected_database)
         self.menuActions.addAction(self.actionDelete_selected_table)
-        # self.menuconfiguration_db.addAction(self.actionchange_configuration)
-        # self.menuconfiguration_db.addAction(self.changePasswordForUser)
+        self.menuActions.addAction(self.actionDelete_selected_database)
         self.menubar.addAction(self.menuActions.menuAction())
-        # self.menubar.addAction(self.menuconfiguration_db.menuAction())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -125,17 +118,15 @@ class Ui_MainWindow(object):
         self.downloadButton.setText(_translate("MainWindow", "Download mysql or check if download"))
         self.connectButton.setText(_translate("MainWindow", "connect or reconnect to database"))
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
-        # self.menuconfiguration_db.setTitle(_translate("MainWindow", "Database ( conf )"))
-        self.actionAdd_database.setText(_translate("MainWindow", "Add database"))
-        self.actionAdd_table.setText(_translate("MainWindow", "Add table"))
-        self.actionAdd_Row.setText(_translate("MainWindow", "Add row"))
+        self.actionAdd_database.setText(_translate("MainWindow", "Add DATABASE"))
+        self.actionAdd_table.setText(_translate("MainWindow", "Add TABLE"))
+        self.actionAdd_Row.setText(_translate("MainWindow", "Add ROW"))
         self.actionRemove_Row.setText(_translate("MainWindow", "Delete selected ROW"))
-        # self.actionDatabase_info_change.setText(_translate("MainWindow", "Database info change"))
-        # self.actionchange_configuration.setText(_translate("MainWindow", "Change configuration"))
         self.actionDelete_selected_database.setText(_translate("MainWindow", "Delete selected DATABASE"))
         self.actionDelete_selected_table.setText(_translate("MainWindow", "Delete selected TABLE"))
         self.password.setPlaceholderText('Write root password here...')
-        # self.changePasswordForUser.setText('Change password for user')
+        self.setWindowTitle('MySqlManager')
+
 
     # Check if download mysql, if not make download
 
@@ -412,17 +403,27 @@ class Ui_MainWindow(object):
             cursor.execute('SELECT * FROM {0}'.format(self.listTables.currentItem().text()))
 
             change_value = ''
+            change_value_All = []
 
             row_id = 0
             arrayValues = []
             for item in cursor:
                 if row_id is self.table.currentRow():
                     change_value = item[self.table.currentColumn()]
-                arrayValues.append(item[self.table.currentColumn()])
+                    change_value_All = item
+                arrayValues.append(item)
                 row_id += 1
 
             if str(change_value) == str(self.table.currentItem().text()):
                 return None
+
+            if arrayValues.count(change_value_All) > 1:
+                self.messageWarningShow(
+                    'Unexpected update count received (Actual: {0} Expected: 1). All changes will be rolled back.'
+                    .format(arrayValues.count(change_value_All)))
+
+                self.reFillTable()
+                return
 
             cursor.execute(
                 'select column_name, case when column_key= \'PRI\' then \'Primary\' else \'Not primary\' end as Output '
@@ -437,7 +438,6 @@ class Ui_MainWindow(object):
             havePrimaryKey = False
             columnNamePrimary = ''
             for item in cursor:
-                print(item)
                 if str(item[1]) == 'Primary':
                     havePrimaryKey = True
                     columnNamePrimary = str(item[0])
@@ -452,31 +452,41 @@ class Ui_MainWindow(object):
 
                 if numberOfPrimaryColumn != self.table.currentColumn():
                     change_value = self.table.item(self.table.currentRow(), numberOfPrimaryColumn).text()
+            else:
+                cursor.execute('SHOW COLUMNS FROM {0}'.format(self.listTables.currentItem().text()))
 
-            if arrayValues.count(change_value) > 1 and havePrimaryKey is False:
-                self.messageWarningShow(
-                    'Unexpected update count received (Actual: {0} Expected: 1). All changes will be rolled back.'
-                    .format(str(arrayValues.count(change_value))))
+                change_value = ''
+                counter = 0
+                for item in cursor:
 
-                self.reFillTable()
-                return
+                    if counter == self.table.columnCount() - 1:
+                        change_value += '{0} = \'{1}\''.format(item[0],
+                                                                    self.table.item(self.table.currentRow(),
+                                                                    counter).text() if item[0] != column_to_change else change_value_All[self.table.currentColumn()])
+                    else:
+                        change_value += '{0} = \'{1}\' AND '.format(item[0],
+                                                                    self.table.item(self.table.currentRow(),
+                                                                    counter).text() if item[0] != column_to_change else change_value_All[self.table.currentColumn()])
+                    counter += 1
 
             try:
-                cursor.execute('UPDATE {0} SET {1} = \'{2}\' WHERE {3} = \'{4}\';'.format(
-                    self.listTables.currentItem().text(),
-                    str(column_to_change),
-                    self.table.currentItem().text(),
-                    str(columnNamePrimary) if havePrimaryKey else str(column_to_change),
-                    str(change_value))
-                )
-
-                print('UPDATE {0} SET {1} = \'{2}\' WHERE {3} = \'{4}\';'.format(
-                    self.listTables.currentItem().text(),
-                    str(column_to_change),
-                    self.table.currentItem().text(),
-                    str(columnNamePrimary) if havePrimaryKey else str(column_to_change),
-                    str(change_value))
-                )
+                if not havePrimaryKey:
+                    query = 'UPDATE {0} SET {1} = \'{2}\' WHERE {3};'.format(
+                            self.listTables.currentItem().text(),
+                            str(column_to_change),
+                            self.table.currentItem().text(),
+                            str(change_value))
+                    print(query)
+                    cursor.execute(query)
+                else:
+                    query = 'UPDATE {0} SET {1} = \'{2}\' WHERE {3} = \'{4}\';'.format(
+                        self.listTables.currentItem().text(),
+                        str(column_to_change),
+                        self.table.currentItem().text(),
+                        str(columnNamePrimary),
+                        str(change_value))
+                    print(query)
+                    cursor.execute(query)
             except Exception as e:
                 self.messageWarningShow(str(e))
                 self.reFillTable()
@@ -491,6 +501,7 @@ class Ui_MainWindow(object):
         self.newForm = createTable.Ui_createTable()
         self.newForm.setupUi(self)
         self.newForm.databaseName = self.dbComboBox.currentText()
+        self.setWindowTitle('MySqlManager')
 
         self.newForm.go_Back.clicked.connect(self.justGoBack)
         self.newForm.addColumn.clicked.connect(self.addColumnToNewTable)
@@ -649,12 +660,15 @@ class Ui_MainWindow(object):
             self.messageWarningShow(str(e))
 
         self.updateWithComboBox()
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
 
     # create database action
 
     def createDatabase(self):
         self.newForm = addDatabaseDesign.Ui_AddDatabase()
         self.newForm.setupUi(self)
+        self.setWindowTitle('MySqlManager')
         self.newForm.infoAboutEdit.setText('Enter a name for database')
         self.newForm.saveButton.clicked.connect(self.createDbAndGoBack)
         self.newForm.backButton.clicked.connect(self.justGoBack)
@@ -701,6 +715,7 @@ class Ui_MainWindow(object):
 
     def messageWarningShow(self, message):
         msg = QMessageBox()
+        msg.setStyleSheet("background-color: #1E5162;")
         msg.setIcon(QMessageBox.Warning)
         msg.setWindowTitle('Warning')
         msg.setText(message)
@@ -708,6 +723,7 @@ class Ui_MainWindow(object):
 
     def messageInfromationShow(self, message):
         msg = QMessageBox()
+        msg.setStyleSheet("background-color: #1E5162;")
         msg.setIcon(QMessageBox.Information)
         msg.setWindowTitle('Information')
         msg.setText(message)

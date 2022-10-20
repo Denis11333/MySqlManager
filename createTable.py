@@ -8,6 +8,7 @@ class Ui_createTable(object):
 
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(842, 556)
+        MainWindow.setWindowTitle('MySqlMananger')
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -69,5 +70,6 @@ class Ui_createTable(object):
         self.create_Table.setText(_translate("MainWindow", "Create table"))
         self.go_Back.setText(_translate("MainWindow", "Go back"))
         self.deleteColumn.setText(_translate('MainWindow', 'Delete column'))
+
 
 
