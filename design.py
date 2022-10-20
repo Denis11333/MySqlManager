@@ -2,6 +2,7 @@ import inspect
 import os
 
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtGui import QIcon
 
 import mysql.connector
 from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMessageBox, QMainWindow
@@ -95,7 +96,7 @@ class Ui_MainWindow(object):
 
         self.downloadButton.clicked.connect(self.downloadAction)
         self.connectButton.clicked.connect(self.connectAndFillComboBox)
-        self.dbComboBox.activated.connect(self.updateWithComboBox)
+        self.dbComboBox.activated.connect(self.updateListTables)
         self.listTables.activated.connect(self.fillTable)
         self.actionAdd_database.triggered.connect(self.createDatabase)
         self.password.textChanged.connect(self.passwordChange)
@@ -127,7 +128,6 @@ class Ui_MainWindow(object):
         self.password.setPlaceholderText('Write root password here...')
         self.setWindowTitle('MySqlManager')
 
-
     # Check if download mysql, if not make download
 
     def downloadAction(self):
@@ -152,7 +152,7 @@ class Ui_MainWindow(object):
         self.connectButton.setDisabled(False)
         self.password.setDisabled(True)
 
-    # action on delete
+    # action on delete row
 
     def remove_Selected_Row(self):
         if self.table.currentItem() is None:
@@ -336,7 +336,7 @@ class Ui_MainWindow(object):
 
     # Insert all databases in combobox
 
-    def updateWithComboBox(self):
+    def updateListTables(self):
 
         self.listTables.clear()
 
@@ -461,21 +461,25 @@ class Ui_MainWindow(object):
 
                     if counter == self.table.columnCount() - 1:
                         change_value += '{0} = \'{1}\''.format(item[0],
-                                                                    self.table.item(self.table.currentRow(),
-                                                                    counter).text() if item[0] != column_to_change else change_value_All[self.table.currentColumn()])
+                                                               self.table.item(self.table.currentRow(),
+                                                                               counter).text() if item[
+                                                                                                      0] != column_to_change else
+                                                               change_value_All[self.table.currentColumn()])
                     else:
                         change_value += '{0} = \'{1}\' AND '.format(item[0],
                                                                     self.table.item(self.table.currentRow(),
-                                                                    counter).text() if item[0] != column_to_change else change_value_All[self.table.currentColumn()])
+                                                                                    counter).text() if item[
+                                                                                                           0] != column_to_change else
+                                                                    change_value_All[self.table.currentColumn()])
                     counter += 1
 
             try:
                 if not havePrimaryKey:
                     query = 'UPDATE {0} SET {1} = \'{2}\' WHERE {3};'.format(
-                            self.listTables.currentItem().text(),
-                            str(column_to_change),
-                            self.table.currentItem().text(),
-                            str(change_value))
+                        self.listTables.currentItem().text(),
+                        str(column_to_change),
+                        self.table.currentItem().text(),
+                        str(change_value))
                     print(query)
                     cursor.execute(query)
                 else:
@@ -495,6 +499,106 @@ class Ui_MainWindow(object):
 
             self.table.setCurrentItem(None)
 
+    def deleteDatabase(self):
+        db = self.makeConnect()
+
+        cursor = db.cursor()
+
+        try:
+            cursor.execute('DROP DATABASE {0};'.format(self.dbComboBox.currentText()))
+        except Exception as e:
+            self.messageWarningShow(str(e))
+
+        self.connectAndFillComboBox()
+
+    def deleteTable(self):
+        if self.listTables.currentItem() is None:
+            self.messageWarningShow('Table is not selected')
+            return
+
+        db = self.makeConnectWithDB()
+
+        cursor = db.cursor()
+
+        try:
+            cursor.execute('DROP TABLE {0};'.format(self.listTables.currentItem().text()))
+        except Exception as e:
+            self.messageWarningShow(str(e))
+
+        self.updateListTables()
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
+
+    # create connection to database
+
+    def makeConnect(self):
+        return mysql.connector.connect(
+            host=self.ipDb,
+            user=self.userDb,
+            password=self.passwordDb,
+        )
+
+    # create connection to database with database
+
+    def makeConnectWithDB(self):
+        return mysql.connector.connect(
+            host=self.ipDb,
+            user=self.userDb,
+            password=self.passwordDb,
+            database=self.dbComboBox.currentText()
+        )
+
+    # right refill table
+
+    def reFillTable(self):
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
+        self.fillTable()
+
+    # back to main window
+
+    def justGoBack(self):
+        self.setupUi(self)
+        self.connectButton.setDisabled(False)
+        self.connectAndFillComboBox()
+
+        self.unBlock()
+
+    def unBlock(self):
+        self.connectButton.setDisabled(False)
+        self.downloadButton.setDisabled(False)
+
+    #
+    # --- create database ---
+    #
+
+    def createDatabase(self):
+        self.newForm = addDatabaseDesign.Ui_AddDatabase()
+        self.newForm.setupUi(self)
+        self.setWindowTitle('MySqlManager')
+        self.newForm.infoAboutEdit.setText('Enter a name for database')
+        self.newForm.saveButton.clicked.connect(self.createDbAndGoBack)
+        self.newForm.backButton.clicked.connect(self.justGoBack)
+
+    # create and back to main window
+
+    def createDbAndGoBack(self):
+        db = self.makeConnect()
+        cursor = db.cursor()
+        cursor.execute('CREATE DATABASE {0}'.format(str(self.newForm.inputEdit.text())))
+        self.setupUi(self)
+        self.connectAndFillComboBox()
+
+        self.unBlock()
+
+    #
+    # --- end of create database ---
+    #
+
+    #
+    # --- Add table ---
+    #
+
     # open form with create table
 
     def createTableForm(self):
@@ -508,42 +612,8 @@ class Ui_MainWindow(object):
         self.newForm.deleteColumn.clicked.connect(self.deleteColumn)
         self.newForm.create_Table.clicked.connect(self.createTable)
 
-    # add new column action
-    def addColumnToNewTable(self):
-        columnName = QtWidgets.QLineEdit(self.newForm.scrollAreaWidgetContents)
-        columnName.setPlaceholderText('Column name')
-
-        type_of_column = QtWidgets.QComboBox(self.newForm.scrollAreaWidgetContents)
-        type_of_column.setEditable(True)
-        type_of_column.addItem('varchar(30)')
-        type_of_column.addItem('int')
-
-        primary_key = QtWidgets.QComboBox(self.newForm.scrollAreaWidgetContents)
-        primary_key.setEditable(True)
-        primary_key.addItem('Not a primary key')
-        primary_key.addItem('Primary key')
-        primary_key.addItem('Primary key auto_increment')
-
-        additionalText = QtWidgets.QLineEdit(self.newForm.scrollAreaWidgetContents)
-        additionalText.setPlaceholderText('Parameters for example varchar( your param )')
-
-        line = QtWidgets.QFrame(self.newForm.scrollAreaWidgetContents)
-        line.setFrameShape(QtWidgets.QFrame.HLine)
-        line.setFrameShadow(QtWidgets.QFrame.Sunken)
-
-        self.newForm.tableLayout.addWidget(columnName)
-        self.newForm.tableLayout.addWidget(type_of_column)
-        self.newForm.tableLayout.addWidget(primary_key)
-        self.newForm.tableLayout.addWidget(additionalText)
-        self.newForm.tableLayout.addWidget(line)
-
-        self.newForm.array.append(columnName)
-        self.newForm.array.append(type_of_column)
-        self.newForm.array.append(primary_key)
-        self.newForm.array.append(additionalText)
-        self.newForm.array.append(line)
-
     # delete column action
+
     def deleteColumn(self):
         count = len(self.newForm.array)
         tempArray = []
@@ -631,87 +701,49 @@ class Ui_MainWindow(object):
         except Exception as e:
             self.messageWarningShow(str(e))
 
-    # delete database action
+    # add new column action
 
-    def deleteDatabase(self):
-        db = self.makeConnect()
+    def addColumnToNewTable(self):
+        columnName = QtWidgets.QLineEdit(self.newForm.scrollAreaWidgetContents)
+        columnName.setPlaceholderText('Column name')
 
-        cursor = db.cursor()
+        type_of_column = QtWidgets.QComboBox(self.newForm.scrollAreaWidgetContents)
+        type_of_column.setEditable(True)
+        type_of_column.addItem('varchar(30)')
+        type_of_column.addItem('int')
 
-        try:
-            cursor.execute('DROP DATABASE {0};'.format(self.dbComboBox.currentText()))
-        except Exception as e:
-            self.messageWarningShow(str(e))
+        primary_key = QtWidgets.QComboBox(self.newForm.scrollAreaWidgetContents)
+        primary_key.setEditable(True)
+        primary_key.addItem('Not a primary key')
+        primary_key.addItem('Primary key')
+        primary_key.addItem('Primary key auto_increment')
 
-        self.connectAndFillComboBox()
+        additionalText = QtWidgets.QLineEdit(self.newForm.scrollAreaWidgetContents)
+        additionalText.setPlaceholderText('Parameters for example varchar( your param )')
 
-    def deleteTable(self):
-        if self.listTables.currentItem() is None:
-            self.messageWarningShow('Table is not selected')
-            return
+        line = QtWidgets.QFrame(self.newForm.scrollAreaWidgetContents)
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
-        db = self.makeConnectWithDB()
+        self.newForm.tableLayout.addWidget(columnName)
+        self.newForm.tableLayout.addWidget(type_of_column)
+        self.newForm.tableLayout.addWidget(primary_key)
+        self.newForm.tableLayout.addWidget(additionalText)
+        self.newForm.tableLayout.addWidget(line)
 
-        cursor = db.cursor()
+        self.newForm.array.append(columnName)
+        self.newForm.array.append(type_of_column)
+        self.newForm.array.append(primary_key)
+        self.newForm.array.append(additionalText)
+        self.newForm.array.append(line)
 
-        try:
-            cursor.execute('DROP TABLE {0};'.format(self.listTables.currentItem().text()))
-        except Exception as e:
-            self.messageWarningShow(str(e))
+    #
+    # --- end add table ---
+    #
 
-        self.updateWithComboBox()
-        self.table.setRowCount(0)
-        self.table.setColumnCount(0)
-
-    # create database action
-
-    def createDatabase(self):
-        self.newForm = addDatabaseDesign.Ui_AddDatabase()
-        self.newForm.setupUi(self)
-        self.setWindowTitle('MySqlManager')
-        self.newForm.infoAboutEdit.setText('Enter a name for database')
-        self.newForm.saveButton.clicked.connect(self.createDbAndGoBack)
-        self.newForm.backButton.clicked.connect(self.justGoBack)
-
-    # create and back to main window
-
-    def createDbAndGoBack(self):
-        db = self.makeConnect()
-        cursor = db.cursor()
-        cursor.execute('CREATE DATABASE {0}'.format(str(self.newForm.inputEdit.text())))
-        self.setupUi(self)
-        self.connectAndFillComboBox()
-
-        self.unBlock()
-
-    # back to main window
-    def justGoBack(self):
-        self.setupUi(self)
-        self.connectButton.setDisabled(False)
-        self.connectAndFillComboBox()
-
-        self.unBlock()
-
-    # create connection to database
-
-    def makeConnect(self):
-        return mysql.connector.connect(
-            host=self.ipDb,
-            user=self.userDb,
-            password=self.passwordDb,
-        )
-
-    # create connection to database with database
-
-    def makeConnectWithDB(self):
-        return mysql.connector.connect(
-            host=self.ipDb,
-            user=self.userDb,
-            password=self.passwordDb,
-            database=self.dbComboBox.currentText()
-        )
-
-    # show warning about error
+    #
+    # --- warnings ---
+    #
 
     def messageWarningShow(self, message):
         msg = QMessageBox()
@@ -729,13 +761,6 @@ class Ui_MainWindow(object):
         msg.setText(message)
         msg.exec_()
 
-    # right refill table
-
-    def reFillTable(self):
-        self.table.setRowCount(0)
-        self.table.setColumnCount(0)
-        self.fillTable()
-
-    def unBlock(self):
-        self.connectButton.setDisabled(False)
-        self.downloadButton.setDisabled(False)
+    #
+    # --- end warnings ---
+    #
