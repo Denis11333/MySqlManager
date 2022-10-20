@@ -62,7 +62,6 @@ class Ui_createTable(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
@@ -70,6 +69,3 @@ class Ui_createTable(object):
         self.create_Table.setText(_translate("MainWindow", "Create table"))
         self.go_Back.setText(_translate("MainWindow", "Go back"))
         self.deleteColumn.setText(_translate('MainWindow', 'Delete column'))
-
-
-
