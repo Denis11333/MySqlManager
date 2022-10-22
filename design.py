@@ -8,6 +8,7 @@ import mysql.connector
 from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMessageBox, QMainWindow
 
 import addDatabaseDesign
+import changeConfDb
 import createTable
 
 
@@ -48,13 +49,14 @@ class Ui_MainWindow(object):
         self.downloadButton = QtWidgets.QPushButton(self.centralwidget)
         self.downloadButton.setObjectName("downloadButton")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.downloadButton)
-        self.connectButton = QtWidgets.QPushButton(self.centralwidget)
-        self.connectButton.setObjectName("connectButton")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.connectButton)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1364, 22))
         self.menubar.setObjectName("menubar")
+        self.menuActionsConfiguration = QtWidgets.QMenu(self.menubar)
+        self.menuActionsConfiguration.setObjectName('MenuConfiguration')
+        self.actionAnnother_Connect = QtWidgets.QAction(MainWindow)
+        self.actionAnnother_Connect.setObjectName("actionAnnother_Connect")
         self.menuActions = QtWidgets.QMenu(self.menubar)
         self.menuActions.setObjectName("menuActions")
         MainWindow.setMenuBar(self.menubar)
@@ -83,19 +85,18 @@ class Ui_MainWindow(object):
         self.menuActions.addAction(self.actionRemove_Row)
         self.menuActions.addAction(self.actionDelete_selected_table)
         self.menuActions.addAction(self.actionDelete_selected_database)
+        self.menuActionsConfiguration.addAction(self.actionAnnother_Connect)
         self.menubar.addAction(self.menuActions.menuAction())
+        self.menubar.addAction(self.menuActionsConfiguration.menuAction())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
-        self.ipDb = 'localhost'
-        self.userDb = 'root'
-        self.passwordDb = 'mysqlManagerPassword1_'
+        self.passwordForRoot = ''
 
         self.downloadButton.clicked.connect(self.downloadAction)
-        self.connectButton.clicked.connect(self.connectAndFillComboBox)
         self.dbComboBox.activated.connect(self.updateListTables)
         self.listTables.activated.connect(self.fillTable)
         self.actionAdd_database.triggered.connect(self.createDatabase)
@@ -106,18 +107,19 @@ class Ui_MainWindow(object):
         self.actionAdd_table.triggered.connect(self.createTableForm)
         self.actionDelete_selected_database.triggered.connect(self.deleteDatabase)
         self.actionDelete_selected_table.triggered.connect(self.deleteTable)
+        self.actionAnnother_Connect.triggered.connect(self.openConfWindow)
 
-        self.connectButton.setDisabled(True)
         self.menuActions.setDisabled(True)
         self.downloadButton.setEnabled(False)
         self.actionAdd_Row.setEnabled(False)
+
+        self.menuActions.setStyleSheet("background-color: #ADD8E6;")
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.labelForRoot.setText(_translate("MainWindow", "Password for root"))
         self.downloadButton.setText(_translate("MainWindow", "Download mysql or check if download"))
-        self.connectButton.setText(_translate("MainWindow", "connect or reconnect to database"))
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
         self.actionAdd_database.setText(_translate("MainWindow", "Add DATABASE"))
         self.actionAdd_table.setText(_translate("MainWindow", "Add TABLE"))
@@ -125,6 +127,9 @@ class Ui_MainWindow(object):
         self.actionRemove_Row.setText(_translate("MainWindow", "Delete selected ROW"))
         self.actionDelete_selected_database.setText(_translate("MainWindow", "Delete selected DATABASE"))
         self.actionDelete_selected_table.setText(_translate("MainWindow", "Delete selected TABLE"))
+        self.actionAnnother_Connect.setText(_translate('MainWindow', 'Change connect configuration or connect without '
+                                                                     'check download'))
+        self.menuActionsConfiguration.setTitle(_translate('MainWindow', 'Configuration'))
         self.password.setPlaceholderText('Write root password here...')
         self.setWindowTitle('MySqlManager')
 
@@ -149,8 +154,15 @@ class Ui_MainWindow(object):
 
             self.messageInfromationShow('Mysql is installed')
 
-        self.connectButton.setDisabled(False)
-        self.password.setDisabled(True)
+        self.ipDb = 'localhost'
+        self.userDb = 'root'
+        self.passwordDb = 'mysqlManagerPassword1_'
+        self.portDb = 3306
+
+        self.connectAndFillComboBox()
+
+        self.passwordForRoot = self.password.text()
+        self.hideRootInput()
 
     # action on delete row
 
@@ -358,7 +370,11 @@ class Ui_MainWindow(object):
         self.table.setRowCount(0)
         self.table.setColumnCount(0)
 
-        db = self.makeConnect()
+        try:
+            db = self.makeConnect()
+        except Exception as e:
+            self.messageWarningShow(str(e))
+            return
 
         cursor = db.cursor()
 
@@ -532,10 +548,12 @@ class Ui_MainWindow(object):
     # create connection to database
 
     def makeConnect(self):
+        print(self.userDb, self.ipDb, self.passwordDb, self.portDb)
         return mysql.connector.connect(
             host=self.ipDb,
             user=self.userDb,
             password=self.passwordDb,
+            port=self.portDb
         )
 
     # create connection to database with database
@@ -545,7 +563,8 @@ class Ui_MainWindow(object):
             host=self.ipDb,
             user=self.userDb,
             password=self.passwordDb,
-            database=self.dbComboBox.currentText()
+            database=self.dbComboBox.currentText(),
+            port=self.portDb
         )
 
     # right refill table
@@ -559,15 +578,14 @@ class Ui_MainWindow(object):
 
     def justGoBack(self):
         self.setupUi(self)
-        self.connectButton.setDisabled(False)
         self.connectAndFillComboBox()
 
-        self.unBlock()
+        self.hideRootInput()
 
-    def unBlock(self):
-        self.connectButton.setDisabled(False)
-        self.downloadButton.setDisabled(False)
-
+    def hideRootInput(self):
+        self.downloadButton.setParent(None)
+        self.labelForRoot.setParent(None)
+        self.password.setParent(None)
     #
     # --- create database ---
     #
@@ -589,8 +607,7 @@ class Ui_MainWindow(object):
         self.setupUi(self)
         self.connectAndFillComboBox()
 
-        self.unBlock()
-
+        self.hideRootInput()
     #
     # --- end of create database ---
     #
@@ -764,3 +781,41 @@ class Ui_MainWindow(object):
     #
     # --- end warnings ---
     #
+
+    #
+    # --- edit configuration DB to connect
+    #
+
+    def openConfWindow(self):
+        self.newForm = changeConfDb.Ui_MainWindow()
+        self.newForm.setupUi(self)
+        self.setWindowTitle('MySqlManager')
+
+        self.newForm.backButton.clicked.connect(self.justGoBack)
+        self.newForm.Apply.clicked.connect(self.checkNewConnection)
+
+        self.newForm.password.setText(self.passwordDb)
+        self.newForm.portDb.setText(str(self.portDb))
+        self.newForm.userDb.setText(self.userDb)
+        self.newForm.hostDb.setText(self.ipDb)
+
+    def checkNewConnection(self):
+        try:
+            db = mysql.connector.connect(
+                host=self.newForm.hostDb.text(),
+                user=self.newForm.userDb.text(),
+                password=self.newForm.password.text(),
+                port=self.newForm.portDb.text()
+            )
+
+            self.ipDb = self.newForm.hostDb.text()
+            self.userDb = self.newForm.userDb.text()
+            self.passwordDb = self.newForm.password.text()
+            self.portDb = int(self.newForm.portDb.text())
+        except Exception as e:
+            self.messageWarningShow(str(e))
+            return
+
+        self.messageInfromationShow('Configuration changed')
+
+        self.justGoBack()
