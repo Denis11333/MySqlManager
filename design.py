@@ -12,7 +12,23 @@ import changeConfDb
 import createTable
 
 
-# code need to rewrite, but hi is work
+def messageInfromationShow(message):
+    msg = QMessageBox()
+    msg.setStyleSheet("background-color: #1E5162;")
+    msg.setIcon(QMessageBox.Information)
+    msg.setWindowTitle('Information')
+    msg.setText(message)
+    msg.exec_()
+
+
+def messageWarningShow(message):
+    msg = QMessageBox()
+    msg.setStyleSheet("background-color: #1E5162;")
+    msg.setIcon(QMessageBox.Warning)
+    msg.setWindowTitle('Warning')
+    msg.setText(message)
+    msg.exec_()
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -46,7 +62,7 @@ class Ui_MainWindow(object):
         self.labelForRoot = QtWidgets.QLabel(self.centralwidget)
         self.labelForRoot.setObjectName("labelForRoot")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.labelForRoot)
-        self.downloadButton = QtWidgets.QPushButton(self.centralwidget)
+        self.downloadButton = QtWidgets.QCommandLinkButton(self.centralwidget)
         self.downloadButton.setObjectName("downloadButton")
         self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.downloadButton)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -94,8 +110,6 @@ class Ui_MainWindow(object):
 
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
-        self.passwordForRoot = ''
-
         self.downloadButton.clicked.connect(self.downloadAction)
         self.dbComboBox.activated.connect(self.updateListTables)
         self.listTables.activated.connect(self.fillTable)
@@ -113,7 +127,8 @@ class Ui_MainWindow(object):
         self.downloadButton.setEnabled(False)
         self.actionAdd_Row.setEnabled(False)
 
-        self.menuActions.setStyleSheet("background-color: #ADD8E6;")
+        self.menuActions.setStyleSheet('background-color: #ADD8E6;')
+        self.menuActionsConfiguration.setStyleSheet('background-color: #ADD8E6;')
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -121,12 +136,12 @@ class Ui_MainWindow(object):
         self.labelForRoot.setText(_translate("MainWindow", "Password for root"))
         self.downloadButton.setText(_translate("MainWindow", "Download mysql or check if download"))
         self.menuActions.setTitle(_translate("MainWindow", "Actions"))
-        self.actionAdd_database.setText(_translate("MainWindow", "Add DATABASE"))
-        self.actionAdd_table.setText(_translate("MainWindow", "Add TABLE"))
-        self.actionAdd_Row.setText(_translate("MainWindow", "Add ROW"))
-        self.actionRemove_Row.setText(_translate("MainWindow", "Delete selected ROW"))
-        self.actionDelete_selected_database.setText(_translate("MainWindow", "Delete selected DATABASE"))
-        self.actionDelete_selected_table.setText(_translate("MainWindow", "Delete selected TABLE"))
+        self.actionAdd_database.setText(_translate("MainWindow", "CREATE DATABASE"))
+        self.actionAdd_table.setText(_translate("MainWindow", "CREATE TABLE"))
+        self.actionAdd_Row.setText(_translate("MainWindow", "ADD ROW"))
+        self.actionRemove_Row.setText(_translate("MainWindow", "DELETE SELECTED ROW"))
+        self.actionDelete_selected_database.setText(_translate("MainWindow", "DELETE SELECTED DATABASE"))
+        self.actionDelete_selected_table.setText(_translate("MainWindow", "DELETE SELECTED TABLE"))
         self.actionAnnother_Connect.setText(_translate('MainWindow', 'Change connect configuration or connect without '
                                                                      'check download'))
         self.menuActionsConfiguration.setTitle(_translate('MainWindow', 'Configuration'))
@@ -136,23 +151,23 @@ class Ui_MainWindow(object):
     # Check if download mysql, if not make download
 
     def downloadAction(self):
-        self.messageInfromationShow('Download started, press \'OK\' and wait while MySQL will downloaded...\n'
+        messageInfromationShow('Download started, press \'OK\' and wait while MySQL will downloaded...\n'
                                     '( make sure that the password is entered correctly )')
 
         text = os.popen('echo {0} | sudo -S apt list --installed'.format(self.password.text())).read()
 
         if text.__contains__('mysql'):
-            self.messageInfromationShow('Mysql is installed')
+            messageInfromationShow('Mysql is installed')
         else:
             command = './mysql {0}'.format(self.password.text())
             os.system(command)
 
             text = os.popen('echo {0} | sudo -S apt list --installed'.format(self.password.text())).read()
             if not text.__contains__('mysql'):
-                self.messageWarningShow('Install failed, try again with another password')
+                messageWarningShow('Install failed, try again with another password')
                 return
 
-            self.messageInfromationShow('Mysql is installed')
+            messageInfromationShow('Mysql is installed')
 
         self.ipDb = 'localhost'
         self.userDb = 'root'
@@ -168,7 +183,7 @@ class Ui_MainWindow(object):
 
     def remove_Selected_Row(self):
         if self.table.currentItem() is None:
-            self.messageWarningShow('Row in not selected')
+            messageWarningShow('Row in not selected')
             return
 
         db = self.makeConnectWithDB()
@@ -242,7 +257,7 @@ class Ui_MainWindow(object):
                     counter += 1
 
                 if counter > 1:
-                    self.messageWarningShow(
+                    messageWarningShow(
                         'Unexpected update count received (Actual: {0} Expected: 1). All changes will be rolled back.'
                         .format(str(counter)))
                     return
@@ -253,7 +268,7 @@ class Ui_MainWindow(object):
                 print('DELETE FROM {0} WHERE {1}'.format(self.listTables.currentItem().text(),
                                                          namesOfColumns))
         except Exception as e:
-            self.messageWarningShow(str(e))
+            messageWarningShow(str(e))
             self.reFillTable()
 
         db.commit()
@@ -300,7 +315,7 @@ class Ui_MainWindow(object):
 
             self.reFillTable()
         except Exception as e:
-            self.messageWarningShow(str(e))
+            messageWarningShow(str(e))
             self.reFillTable()
 
     def passwordChange(self):
@@ -373,7 +388,7 @@ class Ui_MainWindow(object):
         try:
             db = self.makeConnect()
         except Exception as e:
-            self.messageWarningShow(str(e))
+            messageWarningShow(str(e))
             return
 
         cursor = db.cursor()
@@ -434,7 +449,7 @@ class Ui_MainWindow(object):
                 return None
 
             if arrayValues.count(change_value_All) > 1:
-                self.messageWarningShow(
+                messageWarningShow(
                     'Unexpected update count received (Actual: {0} Expected: 1). All changes will be rolled back.'
                     .format(arrayValues.count(change_value_All)))
 
@@ -508,7 +523,7 @@ class Ui_MainWindow(object):
                     print(query)
                     cursor.execute(query)
             except Exception as e:
-                self.messageWarningShow(str(e))
+                messageWarningShow(str(e))
                 self.reFillTable()
 
             db.commit()
@@ -523,13 +538,13 @@ class Ui_MainWindow(object):
         try:
             cursor.execute('DROP DATABASE {0};'.format(self.dbComboBox.currentText()))
         except Exception as e:
-            self.messageWarningShow(str(e))
+            messageWarningShow(str(e))
 
         self.connectAndFillComboBox()
 
     def deleteTable(self):
         if self.listTables.currentItem() is None:
-            self.messageWarningShow('Table is not selected')
+            messageWarningShow('Table is not selected')
             return
 
         db = self.makeConnectWithDB()
@@ -539,7 +554,7 @@ class Ui_MainWindow(object):
         try:
             cursor.execute('DROP TABLE {0};'.format(self.listTables.currentItem().text()))
         except Exception as e:
-            self.messageWarningShow(str(e))
+            messageWarningShow(str(e))
 
         self.updateListTables()
         self.table.setRowCount(0)
@@ -586,9 +601,8 @@ class Ui_MainWindow(object):
         self.downloadButton.setParent(None)
         self.labelForRoot.setParent(None)
         self.password.setParent(None)
-    #
-    # --- create database ---
-    #
+
+    #  create database
 
     def createDatabase(self):
         self.newForm = addDatabaseDesign.Ui_AddDatabase()
@@ -608,13 +622,6 @@ class Ui_MainWindow(object):
         self.connectAndFillComboBox()
 
         self.hideRootInput()
-    #
-    # --- end of create database ---
-    #
-
-    #
-    # --- Add table ---
-    #
 
     # open form with create table
 
@@ -633,6 +640,10 @@ class Ui_MainWindow(object):
 
     def deleteColumn(self):
         count = len(self.newForm.array)
+
+        if count == 0:
+            return
+
         tempArray = []
 
         for itemId in range(count - 5, count):
@@ -646,11 +657,11 @@ class Ui_MainWindow(object):
 
     def createTable(self):
         if len(self.newForm.array) == 0:
-            self.messageWarningShow('Table can not have 0 columns')
+            messageWarningShow('Table can not have 0 columns')
             return
 
         if self.newForm.tableName.text() == '':
-            self.messageWarningShow('Table name can not be empty')
+            messageWarningShow('Table name can not be empty')
             return
 
         AllColumnsArray = []
@@ -663,7 +674,7 @@ class Ui_MainWindow(object):
                 print('param' if item.text() == '' else item.text())
                 if item.placeholderText() == 'Column name':
                     if item.text() == '':
-                        self.messageWarningShow('Column name can not be empty')
+                        messageWarningShow('Column name can not be empty')
                         return
 
             if isinstance(item, QtWidgets.QComboBox):
@@ -716,7 +727,7 @@ class Ui_MainWindow(object):
 
             self.justGoBack()
         except Exception as e:
-            self.messageWarningShow(str(e))
+            messageWarningShow(str(e))
 
     # add new column action
 
@@ -754,38 +765,7 @@ class Ui_MainWindow(object):
         self.newForm.array.append(additionalText)
         self.newForm.array.append(line)
 
-    #
-    # --- end add table ---
-    #
-
-    #
-    # --- warnings ---
-    #
-
-    def messageWarningShow(self, message):
-        msg = QMessageBox()
-        msg.setStyleSheet("background-color: #1E5162;")
-        msg.setIcon(QMessageBox.Warning)
-        msg.setWindowTitle('Warning')
-        msg.setText(message)
-        msg.exec_()
-
-    def messageInfromationShow(self, message):
-        msg = QMessageBox()
-        msg.setStyleSheet("background-color: #1E5162;")
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle('Information')
-        msg.setText(message)
-        msg.exec_()
-
-    #
-    # --- end warnings ---
-    #
-
-    #
-    # --- edit configuration DB to connect
-    #
-
+    # edit configuration when connect
     def openConfWindow(self):
         self.newForm = changeConfDb.Ui_MainWindow()
         self.newForm.setupUi(self)
@@ -793,11 +773,6 @@ class Ui_MainWindow(object):
 
         self.newForm.backButton.clicked.connect(self.justGoBack)
         self.newForm.Apply.clicked.connect(self.checkNewConnection)
-
-        self.newForm.password.setText(self.passwordDb)
-        self.newForm.portDb.setText(str(self.portDb))
-        self.newForm.userDb.setText(self.userDb)
-        self.newForm.hostDb.setText(self.ipDb)
 
     def checkNewConnection(self):
         try:
@@ -808,14 +783,13 @@ class Ui_MainWindow(object):
                 port=self.newForm.portDb.text()
             )
 
-            self.ipDb = self.newForm.hostDb.text()
-            self.userDb = self.newForm.userDb.text()
-            self.passwordDb = self.newForm.password.text()
-            self.portDb = int(self.newForm.portDb.text())
         except Exception as e:
-            self.messageWarningShow(str(e))
+            messageWarningShow(str(e))
             return
 
-        self.messageInfromationShow('Configuration changed')
+        self.ipDb = self.newForm.hostDb.text()
+        self.userDb = self.newForm.userDb.text()
+        self.passwordDb = self.newForm.password.text()
+        self.portDb = int(self.newForm.portDb.text())
 
         self.justGoBack()
