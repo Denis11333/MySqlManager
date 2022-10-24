@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QListWidgetItem, QTableWidgetItem, QHeaderView, QMes
 import addDatabaseDesign
 import changeConfDb
 import createTable
+import changeNameDbTableColumn
 
 
 def messageInfromationShow(message):
@@ -79,6 +80,8 @@ class Ui_MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.makeChangesInSelectedDatabase = QtWidgets.QAction(MainWindow)
+        self.makeChangesInSelectedDatabase.setObjectName("makeChangesInSelectedDatabase")
         self.actionAdd_database = QtWidgets.QAction(MainWindow)
         self.actionAdd_database.setObjectName("actionAdd_database")
         self.actionAdd_table = QtWidgets.QAction(MainWindow)
@@ -101,6 +104,7 @@ class Ui_MainWindow(object):
         self.menuActions.addAction(self.actionRemove_Row)
         self.menuActions.addAction(self.actionDelete_selected_table)
         self.menuActions.addAction(self.actionDelete_selected_database)
+        self.menuActions.addAction(self.makeChangesInSelectedDatabase)
         self.menuActionsConfiguration.addAction(self.actionAnnother_Connect)
         self.menubar.addAction(self.menuActions.menuAction())
         self.menubar.addAction(self.menuActionsConfiguration.menuAction())
@@ -122,6 +126,7 @@ class Ui_MainWindow(object):
         self.actionDelete_selected_database.triggered.connect(self.deleteDatabase)
         self.actionDelete_selected_table.triggered.connect(self.deleteTable)
         self.actionAnnother_Connect.triggered.connect(self.openConfWindow)
+        self.makeChangesInSelectedDatabase.triggered.connect(self.makeChangesInSelectedDbForm)
 
         self.menuActions.setDisabled(True)
         self.downloadButton.setEnabled(False)
@@ -146,13 +151,14 @@ class Ui_MainWindow(object):
                                                                      'check download'))
         self.menuActionsConfiguration.setTitle(_translate('MainWindow', 'Configuration'))
         self.password.setPlaceholderText('Write root password here...')
+        self.makeChangesInSelectedDatabase.setText(_translate('MainWindow', 'CHANGE DB NAME, TABLE, COLUMNS'))
         self.setWindowTitle('MySqlManager')
 
     # Check if download mysql, if not make download
 
     def downloadAction(self):
         messageInfromationShow('Download started, press \'OK\' and wait while MySQL will downloaded...\n'
-                                    '( make sure that the password is entered correctly )')
+                               '( make sure that the password is entered correctly )')
 
         text = os.popen('echo {0} | sudo -S apt list --installed'.format(self.password.text())).read()
 
@@ -411,8 +417,6 @@ class Ui_MainWindow(object):
 
         self.menuActions.setDisabled(False)
 
-    # make changes in database when something will changed
-
     def doChangesInTable(self):
         if self.table.currentItem() is not None:
             db = self.makeConnectWithDB()
@@ -560,18 +564,13 @@ class Ui_MainWindow(object):
         self.table.setRowCount(0)
         self.table.setColumnCount(0)
 
-    # create connection to database
-
     def makeConnect(self):
-        print(self.userDb, self.ipDb, self.passwordDb, self.portDb)
         return mysql.connector.connect(
             host=self.ipDb,
             user=self.userDb,
             password=self.passwordDb,
             port=self.portDb
         )
-
-    # create connection to database with database
 
     def makeConnectWithDB(self):
         return mysql.connector.connect(
@@ -581,8 +580,6 @@ class Ui_MainWindow(object):
             database=self.dbComboBox.currentText(),
             port=self.portDb
         )
-
-    # right refill table
 
     def reFillTable(self):
         self.table.setRowCount(0)
@@ -602,8 +599,6 @@ class Ui_MainWindow(object):
         self.labelForRoot.setParent(None)
         self.password.setParent(None)
 
-    #  create database
-
     def createDatabase(self):
         self.newForm = addDatabaseDesign.Ui_AddDatabase()
         self.newForm.setupUi(self)
@@ -611,8 +606,6 @@ class Ui_MainWindow(object):
         self.newForm.infoAboutEdit.setText('Enter a name for database')
         self.newForm.saveButton.clicked.connect(self.createDbAndGoBack)
         self.newForm.backButton.clicked.connect(self.justGoBack)
-
-    # create and back to main window
 
     def createDbAndGoBack(self):
         db = self.makeConnect()
@@ -622,8 +615,6 @@ class Ui_MainWindow(object):
         self.connectAndFillComboBox()
 
         self.hideRootInput()
-
-    # open form with create table
 
     def createTableForm(self):
         self.newForm = createTable.Ui_createTable()
@@ -635,8 +626,6 @@ class Ui_MainWindow(object):
         self.newForm.addColumn.clicked.connect(self.addColumnToNewTable)
         self.newForm.deleteColumn.clicked.connect(self.deleteColumn)
         self.newForm.create_Table.clicked.connect(self.createTable)
-
-    # delete column action
 
     def deleteColumn(self):
         count = len(self.newForm.array)
@@ -652,8 +641,6 @@ class Ui_MainWindow(object):
 
         for item in tempArray:
             self.newForm.array.remove(item)
-
-    # create table action
 
     def createTable(self):
         if len(self.newForm.array) == 0:
@@ -729,8 +716,6 @@ class Ui_MainWindow(object):
         except Exception as e:
             messageWarningShow(str(e))
 
-    # add new column action
-
     def addColumnToNewTable(self):
         columnName = QtWidgets.QLineEdit(self.newForm.scrollAreaWidgetContents)
         columnName.setPlaceholderText('Column name')
@@ -765,7 +750,6 @@ class Ui_MainWindow(object):
         self.newForm.array.append(additionalText)
         self.newForm.array.append(line)
 
-    # edit configuration when connect
     def openConfWindow(self):
         self.newForm = changeConfDb.Ui_MainWindow()
         self.newForm.setupUi(self)
@@ -793,3 +777,151 @@ class Ui_MainWindow(object):
         self.portDb = int(self.newForm.portDb.text())
 
         self.justGoBack()
+
+    #  change database name, table name, column name
+    def makeChangesInSelectedDbForm(self):
+        self.newForm = changeNameDbTableColumn.Ui_MainWindow()
+        self.newForm.setupUi(self)
+        self.setWindowTitle('MySqlManager')
+
+        try:
+            self.newForm.databaseName = self.dbComboBox.currentText()
+        except:
+            print('it\'s okay')
+
+        self.newForm.back_Button.clicked.connect(self.justGoBack)
+
+        self.newForm.tableWidget.itemChanged.connect(self.makeChangesInSelectedDb)
+
+        self.fillDbChangesTable()
+
+    def fillDbChangesTable(self):
+        self.newForm.tableWidget.itemChanged.disconnect()
+        self.newForm.tableWidget.setRowCount(0)
+        self.newForm.tableWidget.setColumnCount(0)
+
+        db = self.makeConnect()
+        db.database = self.newForm.databaseName
+
+        cursor = db.cursor()
+
+        cursor.execute('SHOW TABLES')
+
+        allTables = []
+
+        for table in cursor:
+            allTables.append(table[0])
+
+        max_count_columns = 0
+        save_result_max = 0
+
+        for table_name in allTables:
+
+            cursor.execute('SHOW COLUMNS FROM {0}'.format(table_name))
+            for column in cursor:
+                max_count_columns += 1
+
+            if max_count_columns > save_result_max:
+                save_result_max = max_count_columns
+
+            max_count_columns = 0
+
+        self.newForm.tableWidget.setRowCount(len(allTables))
+        self.newForm.tableWidget.setColumnCount(save_result_max + 2)
+
+        self.newForm.tableWidget.setHorizontalHeaderItem(0, QTableWidgetItem('DATABASE NAME'))
+        self.newForm.tableWidget.setHorizontalHeaderItem(1, QTableWidgetItem('TABLE NAME'))
+
+        for i in range(2, save_result_max + 2):
+            self.newForm.tableWidget.setHorizontalHeaderItem(i, QTableWidgetItem('COLUMN NAME'))
+
+        self.newForm.tableWidget.setItem(0, 0, QTableWidgetItem(db.database))
+
+        for i in range(len(allTables)):
+            self.newForm.tableWidget.setItem(i, 1, QTableWidgetItem(allTables.__getitem__(i)))
+            cursor.execute('SHOW COLUMNS FROM {0}'.format(allTables.__getitem__(i)))
+
+            index_for_column = 2
+            for column in cursor:
+                self.newForm.tableWidget.setItem(i, index_for_column, QTableWidgetItem(column[0]))
+                index_for_column += 1
+
+        self.newForm.tableWidget.itemChanged.connect(self.makeChangesInSelectedDb)
+
+    def makeChangesInSelectedDb(self):
+        # self.newForm = changeNameDbTableColumn.Ui_MainWindow()
+        # self.newForm.setupUi(self)
+        # self.setWindowTitle('MySqlManager')
+
+        if self.newForm.tableWidget.currentColumn() == 0:
+            messageWarningShow('You can not change database name')
+            self.fillDbChangesTable()
+            return
+
+        if self.newForm.tableWidget.currentColumn() == 1:
+
+            db = self.makeConnect()
+            db.database = self.newForm.databaseName
+
+            cursor = db.cursor()
+
+            cursor.execute('SHOW TABLES')
+
+            counter = 0
+            table_name_to_change = ''
+            for table in cursor:
+                if counter == self.newForm.tableWidget.currentItem().row():
+                    table_name_to_change = table[0]
+                counter += 1
+
+            try:
+                cursor.execute('RENAME TABLE {0} TO {1};'.format(table_name_to_change,
+                                                                 self.newForm.tableWidget.currentItem().text()))
+            except Exception as e:
+                messageWarningShow(str(e))
+
+            self.fillDbChangesTable()
+            return
+
+        db = self.makeConnect()
+
+        db.database = self.newForm.tableWidget.item(0, 0).text()
+
+        cursor = db.cursor(buffered=True)
+
+        cursor.execute('SHOW COLUMNS FROM {0}'.format(
+            self.newForm.tableWidget.item(self.newForm.tableWidget.currentItem().row(), 1).text()))
+
+        current_column_name = ''
+        column_information = ''
+        couter_columns = 0
+        for column in cursor:
+            if couter_columns + 2 == self.newForm.tableWidget.currentItem().column():
+                print(column)
+                current_column_name = column[0]
+
+                column_information += str(column[1]).replace('b', '').replace('\'', '')
+                if str(column).__contains__('auto_increment'):
+                    column_information += ' ' + str(column[len(column) - 1])
+                if str(column).__contains__('YES'):
+                    column_information += ' null'
+                if str(column).__contains__('PRI'):
+                    column_information += ' not null'
+
+                print(column_information)
+            couter_columns += 1
+
+        if couter_columns + 2 <= self.newForm.tableWidget.currentItem().column():
+            messageWarningShow('You can not change this ( not have a sense )')
+        else:
+            try:
+                print()
+
+                print('ALTER TABLE {0} CHANGE COLUMN {1} {2} {3};'.format(self.newForm.tableWidget.item(self.newForm.tableWidget.currentItem().row(), 1).text(),
+                      current_column_name, self.newForm.tableWidget.currentItem().text(), column_information))
+                cursor.execute('ALTER TABLE {0} CHANGE COLUMN {1} {2} {3};'.format(self.newForm.tableWidget.item(self.newForm.tableWidget.currentItem().row(), 1).text(),
+                      current_column_name, self.newForm.tableWidget.currentItem().text(), column_information))
+            except Exception as e:
+                messageWarningShow(str(e))
+
+        self.fillDbChangesTable()
